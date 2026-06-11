@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -6,9 +6,11 @@ import { Button } from '../components/ui/Button';
 import { StatCard } from '../components/dashboard/StatCard';
 import { WelcomeSection } from '../components/dashboard/WelcomeSection';
 import { RecentActivity } from '../components/dashboard/RecentActivity';
+import { MostRecentActivity } from '../components/dashboard/MostRecentActivity';
 import { AIRecommendations } from '../components/dashboard/AIRecommendations';
 import { MonthlyGoal } from '../components/dashboard/MonthlyGoal';
 import './../components/dashboard/dashboard.css';
+import { activityService } from '../utils/activityService';
 
 export const DashboardPage = () => {
   const { user, logout } = useAuth();
@@ -20,6 +22,17 @@ export const DashboardPage = () => {
   };
 
   if (!user) return null;
+  const [activities, setActivities] = useState([]);
+  const [totals, setTotals] = useState({ today: 0, weekly: 0, monthly: 0, total: 0 });
+  const [score, setScore] = useState(0);
+
+  useEffect(() => {
+    const list = activityService.loadActivities();
+    setActivities(list);
+    const agg = activityService.aggregate(list);
+    setTotals(agg.totals);
+    setScore(agg.score);
+  }, []);
 
   return (
     <div>
@@ -41,10 +54,11 @@ export const DashboardPage = () => {
 
       <main className="container dfp-dashboard" role="main">
         <div className="dfp-grid dfp-grid--stats" aria-hidden>
-          <StatCard title="Carbon Score" value="84" description="Good — you're below average" ariaLabel="Carbon score" />
-          <StatCard title="Today's CO₂" value="2.1" unit="kg" ariaLabel="Today's carbon dioxide" />
-          <StatCard title="Weekly CO₂" value="14.3" unit="kg" ariaLabel="Weekly carbon dioxide" />
-          <StatCard title="Monthly CO₂" value="62.8" unit="kg" ariaLabel="Monthly carbon dioxide" />
+          <StatCard title="Carbon Score" value={score} description={score >= 75 ? 'Good — keep it up' : 'Keep improving'} ariaLabel="Carbon score" />
+          <MostRecentActivity />
+          <StatCard title="Today's CO₂" value={totals.today} unit="kg" ariaLabel="Today's carbon dioxide" />
+          <StatCard title="Weekly CO₂" value={totals.weekly} unit="kg" ariaLabel="Weekly carbon dioxide" />
+          <StatCard title="Monthly CO₂" value={totals.monthly} unit="kg" ariaLabel="Monthly carbon dioxide" />
         </div>
 
         <div style={{ height: 'var(--spacing-6)' }} />
@@ -53,7 +67,7 @@ export const DashboardPage = () => {
           <section aria-labelledby="total-co2-heading">
             <h2 id="total-co2-heading">Total CO₂</h2>
             <div className="dfp-section__content" role="region" aria-label="Total CO2">
-              <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--brand-secondary)' }}>1,248 kg</div>
+              <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--brand-secondary)' }}>{totals.total} kg</div>
               <p className="dfp-placeholder">Cumulative CO₂ since tracking began.</p>
             </div>
             <div style={{ height: 'var(--spacing-6)' }} />

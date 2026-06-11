@@ -45,6 +45,41 @@
 .dfp-section__content { background: var(--bg-primary); border:1px solid var(--color-gray-200); padding: var(--spacing-4); border-radius: var(--radius-lg); }
 .dfp-placeholder { color: var(--text-secondary); }
 
+/* Activity components styling */
+.dfp-recent .activity-form select,
+.dfp-recent .activity-form input[type="number"] {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.activity-form { display:block; }
+.activity-form .eco-button { height: 40px; }
+
+.dfp-activity-table th, .dfp-activity-table td { padding: 0.5rem 0.75rem; }
+.dfp-activity-table tbody tr td { vertical-align: middle; }
+
+.dfp-activity-table { border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--color-gray-200); }
+
+.dfp-activity-table thead { background: linear-gradient(90deg,var(--color-emerald-50), transparent); color: var(--text-secondary); font-size: var(--font-size-sm); }
+
+.dfp-activity-table button.eco-button { padding: 0.25rem 0.5rem; font-size: var(--font-size-sm); }
+
+.dfp-most-recent { background: var(--bg-primary); border:1px solid var(--color-gray-200); border-radius: var(--radius-lg); padding: var(--spacing-3); box-shadow: var(--shadow-sm); }
+.dfp-most-recent h3 { margin:0 0 0.5rem 0; font-size: var(--font-size-md); }
+
+/* Focus styles for keyboard navigation */
+select:focus, input:focus, button:focus { outline: 3px solid rgba(16,185,129,0.12); outline-offset: 2px; }
+
+/* Responsive tweaks for activity table */
+@media (max-width: 640px) {
+  .dfp-activity-table thead { display: none; }
+  .dfp-activity-table tbody tr { display: block; border-bottom: 1px solid var(--color-gray-100); padding: 0.5rem 0; }
+  .dfp-activity-table tbody td { display: flex; justify-content: space-between; padding: 0.5rem 0.75rem; }
+}
+
 .dfp-topbar { display:flex; justify-content:space-between; align-items:center; padding: calc(var(--spacing-3) + 0.25rem) 0; }
 .dfp-topbar .dfp-brand { display:flex; align-items:center; gap:0.5rem; font-weight:var(--font-weight-bold); color:var(--brand-primary); }
 
