@@ -1,0 +1,157 @@
+.auth-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+}
+
+.auth-visual {
+  display: none;
+}
+
+.auth-form-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--spacing-8) var(--spacing-4);
+}
+
+.auth-form-wrapper {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.auth-mobile-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  color: var(--brand-primary);
+  text-decoration: none;
+  margin-bottom: var(--spacing-8);
+}
+
+.auth-logo-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.auth-logo-text {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+
+.auth-title {
+  font-size: var(--font-size-3xl);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-2);
+}
+
+.auth-subtitle {
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-8);
+}
+
+/* Auth Form Base Styles (used inside pages) */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.auth-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--spacing-2);
+}
+
+.auth-submit-btn {
+  width: 100%;
+  margin-top: var(--spacing-4);
+}
+
+.auth-link {
+  color: var(--brand-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+}
+
+.auth-redirect {
+  text-align: center;
+  margin-top: var(--spacing-8);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+/* Desktop Layout */
+@media (min-width: 1024px) {
+  .auth-visual {
+    display: flex;
+    flex: 1;
+    background: linear-gradient(135deg, var(--color-emerald-900) 0%, var(--color-teal-700) 100%);
+    color: var(--color-white);
+    padding: var(--spacing-16);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Decorative pattern */
+  .auth-visual::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background-image: radial-gradient(circle at center, rgba(255,255,255,0.1) 0, transparent 50%);
+    opacity: 0.5;
+  }
+
+  .auth-visual-content {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-width: 480px;
+    margin: auto;
+  }
+
+  .auth-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    margin-bottom: var(--spacing-12);
+  }
+  
+  .auth-brand .auth-logo-text {
+    color: var(--color-white);
+  }
+  
+  .auth-brand .auth-logo-icon {
+    color: var(--color-emerald-100);
+  }
+
+  .auth-visual-title {
+    font-size: var(--font-size-5xl);
+    font-weight: var(--font-weight-bold);
+    line-height: 1.1;
+    margin-bottom: var(--spacing-6);
+  }
+
+  .auth-visual-subtitle {
+    font-size: var(--font-size-lg);
+    color: var(--color-emerald-100);
+  }
+
+  .auth-mobile-brand {
+    display: none;
+  }
+}

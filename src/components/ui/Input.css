@@ -1,0 +1,98 @@
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  width: 100%;
+}
+
+.input-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon-wrapper {
+  position: absolute;
+  left: var(--spacing-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.input-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.input-field {
+  width: 100%;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.input-field.has-icon {
+  padding-left: calc(var(--spacing-3) * 2 + 1.25rem);
+}
+
+/* Make room for password toggle */
+.input-field[type="password"],
+.input-field.has-error[type="text"] {
+  padding-right: calc(var(--spacing-3) * 2 + 1.25rem);
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px var(--color-emerald-100);
+}
+
+.input-field.has-error {
+  border-color: #ef4444; /* red-500 */
+}
+
+.input-field.has-error:focus {
+  box-shadow: 0 0 0 3px #fee2e2; /* red-100 */
+}
+
+.input-password-toggle {
+  position: absolute;
+  right: var(--spacing-3);
+  background: transparent;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.input-password-toggle:hover {
+  color: var(--text-primary);
+}
+
+.input-password-toggle:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+.input-error-message {
+  font-size: var(--font-size-sm);
+  color: #ef4444; /* red-500 */
+  margin: 0;
+}

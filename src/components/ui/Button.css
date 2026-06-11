@@ -1,0 +1,73 @@
+.eco-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  font-weight: var(--font-weight-medium);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  font-family: var(--font-family-sans);
+}
+
+.eco-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Variants */
+.eco-button--primary {
+  background-color: var(--brand-primary);
+  color: var(--text-inverse);
+}
+
+.eco-button--primary:hover:not(:disabled) {
+  background-color: var(--brand-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.eco-button--secondary {
+  background-color: var(--bg-tertiary);
+  color: var(--brand-primary);
+}
+
+.eco-button--secondary:hover:not(:disabled) {
+  background-color: var(--color-emerald-100);
+}
+
+.eco-button--outline {
+  background-color: transparent;
+  border: 1px solid var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+.eco-button--outline:hover:not(:disabled) {
+  background-color: var(--bg-tertiary);
+}
+
+.eco-button--ghost {
+  background-color: transparent;
+  color: var(--text-primary);
+}
+
+.eco-button--ghost:hover:not(:disabled) {
+  background-color: var(--bg-secondary);
+}
+
+/* Sizes */
+.eco-button--sm {
+  padding: var(--spacing-2) var(--spacing-3);
+  font-size: var(--font-size-sm);
+}
+
+.eco-button--md {
+  padding: var(--spacing-2) var(--spacing-4);
+  font-size: var(--font-size-base);
+}
+
+.eco-button--lg {
+  padding: var(--spacing-3) var(--spacing-6);
+  font-size: var(--font-size-lg);
+}
