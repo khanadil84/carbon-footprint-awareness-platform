@@ -80,6 +80,23 @@ select:focus, input:focus, button:focus { outline: 3px solid rgba(16,185,129,0.1
   .dfp-activity-table tbody td { display: flex; justify-content: space-between; padding: 0.5rem 0.75rem; }
 }
 
+/* Carbon score badge and trend */
+.carbon-badge { font-size: 0.85rem; }
+.carbon-trend { font-size: 0.9rem; }
+
+/* Goal progress styles */
+.goal-progress-track { width: 100%; height: 12px; background: var(--color-gray-100); border-radius: 999px; overflow: hidden; }
+.goal-progress-fill { height: 100%; background: linear-gradient(90deg,var(--color-emerald-400),var(--color-teal-400)); }
+
+.goal-progress-track:focus { outline: 3px solid rgba(16,185,129,0.12); }
+
+/* Badges */
+.badge { display:flex; align-items:center; gap:0.5rem; padding:0.4rem 0.5rem; border-radius:8px; background:var(--bg-primary); border:1px solid var(--color-gray-200); }
+.badge .badge-icon { font-size:1.25rem; width:28px; height:28px; display:flex; align-items:center; justify-content:center; }
+.badge.earned { box-shadow: var(--shadow-sm); }
+.badge.locked { opacity:0.7; }
+
+
 .dfp-topbar { display:flex; justify-content:space-between; align-items:center; padding: calc(var(--spacing-3) + 0.25rem) 0; }
 .dfp-topbar .dfp-brand { display:flex; align-items:center; gap:0.5rem; font-weight:var(--font-weight-bold); color:var(--brand-primary); }
 

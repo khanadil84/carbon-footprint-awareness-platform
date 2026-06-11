@@ -1,0 +1,22 @@
+.dfp-analytics .analytics-grid { display:grid; gap:0.75rem; grid-template-columns: 1fr; }
+.analytics-card { background: var(--bg-primary); border:1px solid var(--color-gray-200); padding: var(--spacing-3); border-radius: var(--radius-lg); }
+.analytics-card h3 { margin:0 0 0.5rem 0; font-size: var(--font-size-sm); }
+.analytics-card svg { width:100%; height:64px; display:block; }
+
+.analytics-bottom { display:flex; gap:1rem; margin-top:0.5rem; flex-direction:column; }
+.breakdown { flex:1; }
+.analytics-summary { width:320px; }
+.summary-grid { display:grid; gap:0.5rem; grid-template-columns:1fr 1fr; }
+
+.bar-row { display:flex; gap:0.5rem; align-items:center; margin-bottom:0.5rem; }
+.bar-label { flex:0 0 140px; font-size:var(--font-size-sm); color:var(--text-secondary); }
+.bar-track { flex:1; height:10px; background:var(--color-gray-100); border-radius:6px; overflow:hidden; }
+.bar-fill { height:100%; border-radius:6px; }
+.bar-pct { flex:0 0 40px; text-align:right; font-size:var(--font-size-sm); }
+
+.chart-empty { color: var(--text-secondary); padding: 0.75rem 0; }
+
+@media (min-width: 768px) {
+  .dfp-analytics .analytics-grid { grid-template-columns: repeat(3, 1fr); }
+  .analytics-bottom { flex-direction:row; }
+}

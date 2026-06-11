@@ -6,11 +6,17 @@ import { Button } from '../components/ui/Button';
 import { StatCard } from '../components/dashboard/StatCard';
 import { WelcomeSection } from '../components/dashboard/WelcomeSection';
 import { RecentActivity } from '../components/dashboard/RecentActivity';
+import ActivityHistory from '../components/dashboard/ActivityHistory';
 import { MostRecentActivity } from '../components/dashboard/MostRecentActivity';
+import { AnalyticsSection } from '../components/dashboard/AnalyticsSection';
 import { AIRecommendations } from '../components/dashboard/AIRecommendations';
+import { Badges } from '../components/dashboard/Badges';
+import { ExportControls } from '../components/dashboard/ExportControls';
+import PrintableReport from '../components/dashboard/PrintableReport';
 import { MonthlyGoal } from '../components/dashboard/MonthlyGoal';
 import './../components/dashboard/dashboard.css';
 import { activityService } from '../utils/activityService';
+import { calculateCarbonScore } from '../utils/carbonScoreService';
 
 export const DashboardPage = () => {
   const { user, logout } = useAuth();
@@ -22,16 +28,32 @@ export const DashboardPage = () => {
   };
 
   if (!user) return null;
+
   const [activities, setActivities] = useState([]);
   const [totals, setTotals] = useState({ today: 0, weekly: 0, monthly: 0, total: 0 });
   const [score, setScore] = useState(0);
+  const [carbonMeta, setCarbonMeta] = useState({});
+
+  const refreshAll = (list) => {
+    const l = list || activityService.loadActivities();
+    setActivities(l);
+    const agg = activityService.aggregate(l);
+    setTotals(agg.totals);
+    const cs = calculateCarbonScore(l);
+    setScore(cs.score);
+    setCarbonMeta(cs);
+  };
 
   useEffect(() => {
-    const list = activityService.loadActivities();
-    setActivities(list);
-    const agg = activityService.aggregate(list);
-    setTotals(agg.totals);
-    setScore(agg.score);
+    refreshAll();
+  }, []);
+
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === 'eco_activities_v1') refreshAll(activityService.loadActivities());
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
   }, []);
 
   return (
@@ -54,12 +76,22 @@ export const DashboardPage = () => {
 
       <main className="container dfp-dashboard" role="main">
         <div className="dfp-grid dfp-grid--stats" aria-hidden>
-          <StatCard title="Carbon Score" value={score} description={score >= 75 ? 'Good — keep it up' : 'Keep improving'} ariaLabel="Carbon score" />
-          <MostRecentActivity />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <StatCard title="Carbon Score" value={score} description={score >= 75 ? 'Good — keep it up' : 'Keep improving'} ariaLabel="Carbon score" />
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <span className="carbon-badge" aria-hidden style={{ padding: '0.25rem 0.5rem', borderRadius: '999px', background: 'linear-gradient(90deg,var(--color-emerald-50),var(--color-teal-100))', color: 'var(--brand-primary)', fontWeight: 700 }}>{carbonMeta.rating || '—'}</span>
+              <span className="carbon-trend" aria-live="polite" style={{ color: 'var(--text-secondary)' }}>{carbonMeta.trend ? `Trend: ${carbonMeta.trend}` : ''}</span>
+            </div>
+          </div>
+            <MostRecentActivity />
           <StatCard title="Today's CO₂" value={totals.today} unit="kg" ariaLabel="Today's carbon dioxide" />
           <StatCard title="Weekly CO₂" value={totals.weekly} unit="kg" ariaLabel="Weekly carbon dioxide" />
           <StatCard title="Monthly CO₂" value={totals.monthly} unit="kg" ariaLabel="Monthly carbon dioxide" />
         </div>
+
+        <div style={{ height: 'var(--spacing-6)' }} />
+
+        <AnalyticsSection activitiesProp={activities} />
 
         <div style={{ height: 'var(--spacing-6)' }} />
 
@@ -71,12 +103,16 @@ export const DashboardPage = () => {
               <p className="dfp-placeholder">Cumulative CO₂ since tracking began.</p>
             </div>
             <div style={{ height: 'var(--spacing-6)' }} />
-            <RecentActivity />
+            <ActivityHistory />
           </section>
 
           <aside aria-labelledby="right-column-heading">
             <h2 id="right-column-heading" className="sr-only">Secondary</h2>
+            <ExportControls />
+            <Badges />
+            <div style={{ height: 'var(--spacing-2)' }} />
             <AIRecommendations />
+            <PrintableReport />
             <div style={{ height: 'var(--spacing-4)' }} />
             <MonthlyGoal />
           </aside>

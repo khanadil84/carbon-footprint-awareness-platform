@@ -1,0 +1,16 @@
+/* Print styles for EcoTrack report */
+.eco-print-report { display:none; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; padding: 24px; color: #111; }
+.eco-print-report h1 { margin:0 0 8px 0; font-size:24px; }
+.eco-print-report .print-meta { color: #555; margin-bottom: 12px; }
+.eco-print-report section { margin: 12px 0; }
+.eco-print-report dl dt { font-weight:600; }
+.eco-print-report dl dd { margin: 0 0 8px 0; }
+.eco-print-report table { width:100%; border-collapse: collapse; margin-top:8px; }
+.eco-print-report th, .eco-print-report td { border:1px solid #ddd; padding:6px 8px; text-align:left; }
+
+@media print {
+  /* Hide everything except the report */
+  body * { visibility: hidden; }
+  .eco-print-report, .eco-print-report * { visibility: visible; }
+  .eco-print-report { display:block; position: absolute; left:0; top:0; width:100%; }
+}
