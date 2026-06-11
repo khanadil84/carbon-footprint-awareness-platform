@@ -1,0 +1,7 @@
+.profile-avatar {
+  width:64px; height:64px; border-radius:999px; background:linear-gradient(90deg,var(--color-emerald-50),var(--color-teal-400)); display:flex; align-items:center; justify-content:center; font-weight:700; color:var(--brand-primary); font-size:1.25rem;
+}
+
+@media (max-width:640px) {
+  .profile-avatar { width:56px; height:56px; }
+}

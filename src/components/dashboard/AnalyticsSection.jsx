@@ -5,7 +5,7 @@ import { StatCard } from './StatCard';
 import { LineChart, SimpleBar } from '../ui/Chart';
 import './analytics.css';
 
-export const AnalyticsSection = ({ activitiesProp }) => {
+export const AnalyticsSection = ({ activitiesProp, preferredRange }) => {
   const activities = activitiesProp || activityService.loadActivities();
 
   const daily = aggregateByDay(activities, 30);
@@ -14,6 +14,19 @@ export const AnalyticsSection = ({ activitiesProp }) => {
   const breakdown = breakdownByCategory(activities);
   const summary = summaryStats(activities);
 
+  // Determine order based on preferredRange to apply user preference
+  const cards = [
+    { key: 'daily', title: 'Daily CO₂ (30d)', node: <LineChart data={daily} ariaLabel="Daily CO2 trend" /> },
+    { key: 'weekly', title: 'Weekly CO₂ (12w)', node: <LineChart data={weekly.map((d,i)=>({date:d.label,value:d.value}))} ariaLabel="Weekly CO2 trend" /> },
+    { key: 'monthly', title: 'Monthly CO₂ (12m)', node: <LineChart data={monthly.map((d,i)=>({date:d.label,value:d.value}))} ariaLabel="Monthly CO2 trend" /> }
+  ];
+
+  if (preferredRange === 'weekly') {
+    cards.sort((a,b)=> a.key === 'weekly' ? -1 : b.key === 'weekly' ? 1 : 0);
+  } else if (preferredRange === 'monthly') {
+    cards.sort((a,b)=> a.key === 'monthly' ? -1 : b.key === 'monthly' ? 1 : 0);
+  } // default leaves daily first
+
   return (
     <section className="dfp-analytics" aria-labelledby="dfp-analytics-heading">
       <div className="dfp-section__header">
@@ -21,20 +34,12 @@ export const AnalyticsSection = ({ activitiesProp }) => {
       </div>
       <div className="dfp-section__content">
         <div className="analytics-grid">
-          <div className="analytics-card">
-            <h3>Daily CO₂ (30d)</h3>
-            <LineChart data={daily} ariaLabel="Daily CO2 trend" />
-          </div>
-
-          <div className="analytics-card">
-            <h3>Weekly CO₂ (12w)</h3>
-            <LineChart data={weekly.map((d,i)=>({date:d.label,value:d.value}))} ariaLabel="Weekly CO2 trend" />
-          </div>
-
-          <div className="analytics-card">
-            <h3>Monthly CO₂ (12m)</h3>
-            <LineChart data={monthly.map((d,i)=>({date:d.label,value:d.value}))} ariaLabel="Monthly CO2 trend" />
-          </div>
+          {cards.map(c => (
+            <div className="analytics-card" key={c.key}>
+              <h3>{c.title}</h3>
+              {c.node}
+            </div>
+          ))}
         </div>
 
         <div style={{ height: '1rem' }} />

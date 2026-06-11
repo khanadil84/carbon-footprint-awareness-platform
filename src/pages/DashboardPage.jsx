@@ -14,9 +14,11 @@ import { Badges } from '../components/dashboard/Badges';
 import { ExportControls } from '../components/dashboard/ExportControls';
 import PrintableReport from '../components/dashboard/PrintableReport';
 import { MonthlyGoal } from '../components/dashboard/MonthlyGoal';
+import SettingsPanel from '../components/layout/SettingsPanel';
 import './../components/dashboard/dashboard.css';
 import { activityService } from '../utils/activityService';
 import { calculateCarbonScore } from '../utils/carbonScoreService';
+import { SettingsService } from '../utils/settingsService';
 
 export const DashboardPage = () => {
   const { user, logout } = useAuth();
@@ -45,7 +47,29 @@ export const DashboardPage = () => {
   };
 
   useEffect(() => {
+    // Load settings and apply default view + refresh data
+    const settings = SettingsService.loadSettings();
     refreshAll();
+
+    // Apply defaultView: focus the relevant section heading for accessibility
+    try {
+      const map = {
+        overview: 'dfp-welcome-heading',
+        analytics: 'dfp-analytics-heading',
+        history: 'activity-history-heading'
+      };
+      const id = map[settings && settings.defaultView] || map.overview;
+      const el = document.getElementById(id);
+      if (el) {
+        // make focusable and focus for keyboard users
+        el.tabIndex = -1;
+        el.focus();
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } catch (e) {
+      // fail silently — settings are optional
+      console.warn('Failed to apply default view', e);
+    }
   }, []);
 
   useEffect(() => {
@@ -91,7 +115,7 @@ export const DashboardPage = () => {
 
         <div style={{ height: 'var(--spacing-6)' }} />
 
-        <AnalyticsSection activitiesProp={activities} />
+        <AnalyticsSection activitiesProp={activities} preferredRange={SettingsService.loadSettings().analyticsRange} />
 
         <div style={{ height: 'var(--spacing-6)' }} />
 
@@ -113,6 +137,8 @@ export const DashboardPage = () => {
             <div style={{ height: 'var(--spacing-2)' }} />
             <AIRecommendations />
             <PrintableReport />
+            <div style={{ height: 'var(--spacing-4)' }} />
+            <SettingsPanel />
             <div style={{ height: 'var(--spacing-4)' }} />
             <MonthlyGoal />
           </aside>

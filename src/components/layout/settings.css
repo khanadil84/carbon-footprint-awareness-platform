@@ -1,0 +1,5 @@
+/* Minimal settings form tweaks reusing design tokens */
+.dfp-section__content select, .dfp-section__content input[type="checkbox"] {
+  margin-top: 6px;
+}
+.dfp-section__content label { display:block; font-size: 0.95rem; color: var(--text-primary); }
