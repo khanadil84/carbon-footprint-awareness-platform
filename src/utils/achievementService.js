@@ -1,4 +1,4 @@
-import { activityService } from './activityService';
+import { activityService } from './activityService.js';
 import { GoalService } from './goalService';
 
 const STORAGE_KEY = 'eco_achievements_v1';

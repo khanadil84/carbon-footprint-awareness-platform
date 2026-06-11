@@ -1,6 +1,6 @@
-import { activityService } from './activityService';
-import { breakdownByCategory, aggregateByMonth } from './activityAnalytics';
-import { generateRecommendations } from './recommendationService';
+import { activityService } from './activityService.js';
+import { breakdownByCategory, aggregateByMonth } from './activityAnalytics.js';
+import { generateRecommendations } from './recommendationService.js';
 
 const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v));
 

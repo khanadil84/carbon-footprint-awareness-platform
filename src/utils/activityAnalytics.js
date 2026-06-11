@@ -1,4 +1,4 @@
-import { activityService } from './activityService';
+import { activityService } from './activityService.js';
 
 const pad = (n) => n.toString().padStart(2, '0');
 

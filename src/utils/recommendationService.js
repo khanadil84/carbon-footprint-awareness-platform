@@ -1,5 +1,5 @@
-import { breakdownByCategory, summaryStats } from './activityAnalytics';
-import { activityService } from './activityService';
+import { breakdownByCategory, summaryStats } from './activityAnalytics.js';
+import { activityService } from './activityService.js';
 
 const clamp = (v) => Math.max(0, Number(v) || 0);
 

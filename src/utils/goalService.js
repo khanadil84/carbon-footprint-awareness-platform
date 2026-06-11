@@ -1,4 +1,4 @@
-import { activityService } from './activityService';
+import { activityService } from './activityService.js';
 import { breakdownByCategory } from './activityAnalytics';
 
 const STORAGE_KEY = 'eco_goal_v1';

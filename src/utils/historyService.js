@@ -1,4 +1,4 @@
-import { activityService } from './activityService';
+import { activityService } from './activityService.js';
 
 const defaultPageSize = 10;
 

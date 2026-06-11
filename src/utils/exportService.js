@@ -1,4 +1,4 @@
-import { activityService } from './activityService';
+import { activityService } from './activityService.js';
 import { calculateCarbonScore } from './carbonScoreService';
 import { GoalService } from './goalService';
 import { AchievementService } from './achievementService';
