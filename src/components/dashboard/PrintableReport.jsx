@@ -85,4 +85,4 @@ export const PrintableReport = () => {
   );
 };
 
-export default PrintableReport;
+export default React.memo(PrintableReport);

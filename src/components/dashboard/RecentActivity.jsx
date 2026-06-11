@@ -62,4 +62,4 @@ export const RecentActivity = () => {
   );
 };
 
-export default RecentActivity;
+export default React.memo(RecentActivity);

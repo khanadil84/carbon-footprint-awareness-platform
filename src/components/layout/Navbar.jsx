@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { useNavigate } from 'react-router-dom';
 import './Navbar.css';
 
-export const Navbar = () => {
+export const Navbar = React.memo(() => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -63,4 +63,4 @@ export const Navbar = () => {
       )}
     </header>
   );
-};
+});

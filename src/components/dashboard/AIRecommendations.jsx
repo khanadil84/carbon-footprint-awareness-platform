@@ -51,4 +51,4 @@ export const AIRecommendations = () => {
   );
 };
 
-export default AIRecommendations;
+export default React.memo(AIRecommendations);

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { aggregateByDay, aggregateByWeek, aggregateByMonth, breakdownByCategory, summaryStats } from '../../utils/activityAnalytics';
 import { activityService } from '../../utils/activityService';
 import { StatCard } from './StatCard';
@@ -8,24 +8,27 @@ import './analytics.css';
 export const AnalyticsSection = ({ activitiesProp, preferredRange }) => {
   const activities = activitiesProp || activityService.loadActivities();
 
-  const daily = aggregateByDay(activities, 30);
-  const weekly = aggregateByWeek(activities, 12);
-  const monthly = aggregateByMonth(activities, 12);
-  const breakdown = breakdownByCategory(activities);
-  const summary = summaryStats(activities);
+  const daily = useMemo(() => aggregateByDay(activities, 30), [activities]);
+  const weekly = useMemo(() => aggregateByWeek(activities, 12), [activities]);
+  const monthly = useMemo(() => aggregateByMonth(activities, 12), [activities]);
+  const breakdown = useMemo(() => breakdownByCategory(activities), [activities]);
+  const summary = useMemo(() => summaryStats(activities), [activities]);
 
   // Determine order based on preferredRange to apply user preference
-  const cards = [
-    { key: 'daily', title: 'Daily CO₂ (30d)', node: <LineChart data={daily} ariaLabel="Daily CO2 trend" /> },
-    { key: 'weekly', title: 'Weekly CO₂ (12w)', node: <LineChart data={weekly.map((d,i)=>({date:d.label,value:d.value}))} ariaLabel="Weekly CO2 trend" /> },
-    { key: 'monthly', title: 'Monthly CO₂ (12m)', node: <LineChart data={monthly.map((d,i)=>({date:d.label,value:d.value}))} ariaLabel="Monthly CO2 trend" /> }
-  ];
+  const cards = useMemo(() => {
+    const c = [
+      { key: 'daily', title: 'Daily CO₂ (30d)', node: <LineChart data={daily} ariaLabel="Daily CO2 trend" /> },
+      { key: 'weekly', title: 'Weekly CO₂ (12w)', node: <LineChart data={weekly.map((d,i)=>({date:d.label,value:d.value}))} ariaLabel="Weekly CO2 trend" /> },
+      { key: 'monthly', title: 'Monthly CO₂ (12m)', node: <LineChart data={monthly.map((d,i)=>({date:d.label,value:d.value}))} ariaLabel="Monthly CO2 trend" /> }
+    ];
 
-  if (preferredRange === 'weekly') {
-    cards.sort((a,b)=> a.key === 'weekly' ? -1 : b.key === 'weekly' ? 1 : 0);
-  } else if (preferredRange === 'monthly') {
-    cards.sort((a,b)=> a.key === 'monthly' ? -1 : b.key === 'monthly' ? 1 : 0);
-  } // default leaves daily first
+    if (preferredRange === 'weekly') {
+      c.sort((a,b)=> a.key === 'weekly' ? -1 : b.key === 'weekly' ? 1 : 0);
+    } else if (preferredRange === 'monthly') {
+      c.sort((a,b)=> a.key === 'monthly' ? -1 : b.key === 'monthly' ? 1 : 0);
+    }
+    return c;
+  }, [daily, weekly, monthly, preferredRange]);
 
   return (
     <section className="dfp-analytics" aria-labelledby="dfp-analytics-heading">
@@ -71,4 +74,4 @@ export const AnalyticsSection = ({ activitiesProp, preferredRange }) => {
   );
 };
 
-export default AnalyticsSection;
+export default React.memo(AnalyticsSection);

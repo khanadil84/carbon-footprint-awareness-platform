@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { ActivityForm } from './ActivityForm';
 import { activityService } from '../../utils/activityService';
 import { HistoryService } from '../../utils/historyService';
@@ -14,10 +14,10 @@ export const ActivityHistory = () => {
 
   const types = useMemo(() => ['Car','Bus','Train','Flight','Electricity','Food','Waste'], []);
 
-  const runQuery = (f = filters, p = page) => {
+  const runQuery = useCallback((f = filters, p = page) => {
     const q = HistoryService.queryActivities({ ...f, page: p, pageSize });
     setResult(q);
-  };
+  }, [filters, page, pageSize]);
 
   useEffect(() => {
     runQuery();
@@ -33,10 +33,10 @@ export const ActivityHistory = () => {
   }, [page]);
 
   useEffect(() => {
-    const onStorage = (e) => { if (['eco_activities_v1'].includes(e.key)) runQuery(filters, page); };
+    const onStorage = (e) => { if (['eco_activities_v1'].includes(e.key)) runQuery(); };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, [filters, page]);
+  }, [runQuery]);
 
   const handleAdd = (activity) => {
     runQuery({ ...filters }, 1);
@@ -141,4 +141,4 @@ export const ActivityHistory = () => {
   );
 };
 
-export default ActivityHistory;
+export default React.memo(ActivityHistory);

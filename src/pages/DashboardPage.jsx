@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -46,9 +46,10 @@ export const DashboardPage = () => {
     setCarbonMeta(cs);
   };
 
+  const settings = useMemo(() => SettingsService.loadSettings(), []);
+
   useEffect(() => {
     // Load settings and apply default view + refresh data
-    const settings = SettingsService.loadSettings();
     refreshAll();
 
     // Apply defaultView: focus the relevant section heading for accessibility
@@ -115,7 +116,7 @@ export const DashboardPage = () => {
 
         <div style={{ height: 'var(--spacing-6)' }} />
 
-        <AnalyticsSection activitiesProp={activities} preferredRange={SettingsService.loadSettings().analyticsRange} />
+        <AnalyticsSection activitiesProp={activities} preferredRange={settings.analyticsRange} />
 
         <div style={{ height: 'var(--spacing-6)' }} />
 

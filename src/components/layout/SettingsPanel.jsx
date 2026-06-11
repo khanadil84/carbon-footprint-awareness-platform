@@ -5,7 +5,7 @@ import '../../components/dashboard/print.css';
 import './settings.css';
 
 export const SettingsPanel = () => {
-  const [settings, setSettings] = useState(SettingsService.loadSettings());
+  const [settings, setSettings] = useState(() => SettingsService.loadSettings());
   const [status, setStatus] = useState('');
 
   useEffect(() => {
@@ -108,4 +108,4 @@ export const SettingsPanel = () => {
   );
 };
 
-export default SettingsPanel;
+export default React.memo(SettingsPanel);

@@ -74,4 +74,4 @@ export const Badges = () => {
   );
 };
 
-export default Badges;
+export default React.memo(Badges);
