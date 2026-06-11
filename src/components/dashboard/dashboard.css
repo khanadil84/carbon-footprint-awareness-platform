@@ -1,18 +1,18 @@
-/* Dashboard styles - responsive, accessible, vanilla CSS */
+/* Dashboard styles - polished visual presentation */
 .dfp-welcome {
-  background: linear-gradient(90deg, var(--color-emerald-50), var(--color-teal-500));
+  background: linear-gradient(90deg, rgba(16,185,129,0.12), rgba(6,95,70,0.06));
   color: var(--text-inverse);
   padding: calc(var(--spacing-6) + 0.5rem) 0;
 }
 .dfp-welcome__inner { display:flex; align-items:center; }
-.dfp-welcome__text h1 { font-size: var(--font-size-3xl); margin:0; line-height:1.1; }
+.dfp-welcome__text h1 { font-size: var(--font-size-3xl); margin:0; line-height:1.05; font-weight:800; letter-spacing: -0.02em; }
 .dfp-welcome__email { color: rgba(255,255,255,0.95); margin-top:0.25rem; font-weight:var(--font-weight-medium); }
 
-.dfp-dashboard { padding: calc(var(--spacing-6) - 0.5rem) 0; background-color: var(--bg-secondary); min-height: calc(100vh - 140px); }
+.dfp-dashboard { padding: calc(var(--spacing-6) - 0.5rem) 0; background: linear-gradient(180deg, var(--bg-secondary), rgba(255,255,255,0)); min-height: calc(100vh - 140px); }
 .dfp-grid { display:grid; gap: calc(var(--spacing-4) + 0.5rem); grid-template-columns: 1fr; }
 
 @media (min-width: 768px) {
-  .dfp-grid--two { grid-template-columns: 1fr 360px; }
+  .dfp-grid--two { grid-template-columns: 1fr 380px; }
   .dfp-grid--stats { grid-template-columns: repeat(2, 1fr); }
 }
 
@@ -20,81 +20,89 @@
   .dfp-grid--stats { grid-template-columns: repeat(4, 1fr); }
 }
 
-.dfp-stat-card {
-  background: var(--bg-primary);
-  border: 1px solid var(--color-gray-200);
+/* Glass card base */
+.dfp-section__content,
+.dfp-stat-card,
+.analytics-card,
+.dfp-most-recent,
+.dfp-activity-table {
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(6px) saturate(120%);
+  border: 1px solid rgba(10,50,40,0.06);
+  box-shadow: 0 6px 20px rgba(6,95,70,0.06);
   border-radius: var(--radius-lg);
-  padding: calc(var(--spacing-3) + 0.25rem);
-  box-shadow: var(--shadow-sm);
-  display:flex;
-  flex-direction:column;
-  align-items:flex-start;
-  min-height: 96px;
+  transition: transform 180ms ease, box-shadow 180ms ease;
 }
-.dfp-stat-card__value {
-  font-size: calc(var(--font-size-2xl) + 0.25rem);
-  font-weight: var(--font-weight-bold);
-  color: var(--brand-primary);
+
+.dfp-section__content:hover,
+.dfp-stat-card:hover,
+.analytics-card:hover,
+.dfp-most-recent:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(6,95,70,0.09);
 }
+
+.dfp-stat-card { padding: calc(var(--spacing-3) + 0.25rem); display:flex; flex-direction:column; align-items:flex-start; min-height: 96px; }
+.dfp-stat-card__value { font-size: calc(var(--font-size-2xl) + 0.25rem); font-weight: 800; color: var(--brand-primary); }
 .dfp-stat-card__unit { font-size: var(--font-size-sm); color: var(--text-secondary); margin-left: 0.25rem; }
-.dfp-stat-card__title { margin-top: 0.5rem; color: var(--text-secondary); font-weight: var(--font-weight-medium); }
+.dfp-stat-card__title { margin-top: 0.5rem; color: var(--text-secondary); font-weight: 600; }
 .dfp-stat-card__desc { margin-top: 0.5rem; color: var(--text-secondary); font-size: var(--font-size-sm); }
 
 .dfp-section__header h2 { font-size: var(--font-size-xl); margin:0 0 var(--spacing-3) 0; }
 .dfp-section__header { margin-bottom: var(--spacing-2); }
-.dfp-section__content { background: var(--bg-primary); border:1px solid var(--color-gray-200); padding: var(--spacing-4); border-radius: var(--radius-lg); }
-.dfp-placeholder { color: var(--text-secondary); }
+.dfp-section__content { padding: var(--spacing-4); }
+.dfp-placeholder { color: var(--text-secondary); font-style:italic; }
 
-/* Activity components styling */
+/* Activity components styling (polished) */
 .dfp-recent .activity-form select,
 .dfp-recent .activity-form input[type="number"] {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-gray-200);
-  border-radius: var(--radius-md);
-  background: var(--bg-primary);
+  padding: 0.6rem 0.9rem;
+  border: 1px solid rgba(10,50,40,0.06);
+  border-radius: calc(var(--radius-md) - 2px);
+  background: rgba(255,255,255,0.85);
   color: var(--text-primary);
 }
 
 .activity-form { display:block; }
-.activity-form .eco-button { height: 40px; }
+.activity-form .eco-button { height: 42px; }
 
-.dfp-activity-table th, .dfp-activity-table td { padding: 0.5rem 0.75rem; }
+.dfp-activity-table th, .dfp-activity-table td { padding: 0.75rem 0.9rem; }
 .dfp-activity-table tbody tr td { vertical-align: middle; }
 
-.dfp-activity-table { border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--color-gray-200); }
+.dfp-activity-table { overflow: hidden; border-radius: calc(var(--radius-md) - 2px); border: 1px solid rgba(10,50,40,0.04); }
 
-.dfp-activity-table thead { background: linear-gradient(90deg,var(--color-emerald-50), transparent); color: var(--text-secondary); font-size: var(--font-size-sm); }
+.dfp-activity-table thead { background: linear-gradient(90deg, rgba(16,185,129,0.06), transparent); color: var(--text-secondary); font-size: var(--font-size-sm); }
 
-.dfp-activity-table button.eco-button { padding: 0.25rem 0.5rem; font-size: var(--font-size-sm); }
+.dfp-activity-table button.eco-button { padding: 0.35rem 0.55rem; font-size: var(--font-size-sm); }
 
-.dfp-most-recent { background: var(--bg-primary); border:1px solid var(--color-gray-200); border-radius: var(--radius-lg); padding: var(--spacing-3); box-shadow: var(--shadow-sm); }
+.dfp-most-recent { padding: var(--spacing-3); }
 .dfp-most-recent h3 { margin:0 0 0.5rem 0; font-size: var(--font-size-md); }
 
-/* Focus styles for keyboard navigation */
-select:focus, input:focus, button:focus { outline: 3px solid rgba(16,185,129,0.12); outline-offset: 2px; }
+/* Focus styles for keyboard navigation (high-contrast outline) */
+select:focus, input:focus, button:focus { outline: 3px solid rgba(16,185,129,0.18); outline-offset: 2px; }
 
 /* Responsive tweaks for activity table */
 @media (max-width: 640px) {
   .dfp-activity-table thead { display: none; }
-  .dfp-activity-table tbody tr { display: block; border-bottom: 1px solid var(--color-gray-100); padding: 0.5rem 0; }
+  .dfp-activity-table tbody tr { display: block; border-bottom: 1px solid rgba(10,50,40,0.04); padding: 0.6rem 0; }
   .dfp-activity-table tbody td { display: flex; justify-content: space-between; padding: 0.5rem 0.75rem; }
 }
 
 /* Carbon score badge and trend */
-.carbon-badge { font-size: 0.85rem; }
-.carbon-trend { font-size: 0.9rem; }
+.carbon-badge { font-size: 0.95rem; padding: 0.25rem 0.6rem; border-radius: 999px; background: linear-gradient(90deg,var(--color-emerald-50),var(--color-teal-100)); color:var(--brand-primary); font-weight:700 }
+.carbon-trend { font-size: 0.92rem; color: var(--text-secondary); }
 
 /* Goal progress styles */
-.goal-progress-track { width: 100%; height: 12px; background: var(--color-gray-100); border-radius: 999px; overflow: hidden; }
-.goal-progress-fill { height: 100%; background: linear-gradient(90deg,var(--color-emerald-400),var(--color-teal-400)); }
+.goal-progress-track { width: 100%; height: 12px; background: linear-gradient(90deg, rgba(236,253,245,1), rgba(255,255,255,0.6)); border-radius: 999px; overflow: hidden; border:1px solid rgba(10,50,40,0.04); }
+.goal-progress-fill { height: 100%; background: linear-gradient(90deg,var(--color-emerald-400),var(--color-teal-400)); transition: width 300ms ease; }
 
-.goal-progress-track:focus { outline: 3px solid rgba(16,185,129,0.12); }
+.goal-progress-track:focus { outline: 3px solid rgba(16,185,129,0.18); }
 
 /* Badges */
-.badge { display:flex; align-items:center; gap:0.5rem; padding:0.4rem 0.5rem; border-radius:8px; background:var(--bg-primary); border:1px solid var(--color-gray-200); }
-.badge .badge-icon { font-size:1.25rem; width:28px; height:28px; display:flex; align-items:center; justify-content:center; }
-.badge.earned { box-shadow: var(--shadow-sm); }
-.badge.locked { opacity:0.7; }
+.badge { display:flex; align-items:center; gap:0.5rem; padding:0.5rem 0.65rem; border-radius:10px; background:rgba(255,255,255,0.7); border:1px solid rgba(10,50,40,0.04); }
+.badge .badge-icon { font-size:1.25rem; width:34px; height:34px; display:flex; align-items:center; justify-content:center; }
+.badge.earned { box-shadow: 0 6px 18px rgba(6,95,70,0.06); }
+.badge.locked { opacity:0.75; }
 
 
 .dfp-topbar { display:flex; justify-content:space-between; align-items:center; padding: calc(var(--spacing-3) + 0.25rem) 0; }

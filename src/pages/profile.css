@@ -5,3 +5,8 @@
 @media (max-width:640px) {
   .profile-avatar { width:56px; height:56px; }
 }
+
+/* Profile page card polish */
+.container main .dfp-section__content { background: rgba(255,255,255,0.7); border:1px solid rgba(6,95,70,0.04); box-shadow: 0 8px 24px rgba(6,95,70,0.05); border-radius: var(--radius-lg); padding: var(--spacing-4); }
+.container header h1 { font-size: var(--font-size-2xl); margin-bottom: 0.25rem; }
+.profile-avatar { box-shadow: 0 8px 20px rgba(6,95,70,0.06); }
