@@ -1,148 +1,99 @@
 # 🌱 EcoTrack – Carbon Footprint Awareness Platform
 
+## 🌐 Live Demo
+
+**Vercel:** https://carbon-footprint-awareness-platform-two.vercel.app
+
+## 📂 GitHub Repository
+
+**Repository:** https://github.com/khanadil84/carbon-footprint-awareness-platform
+
+---
+
 ## Overview
 
-EcoTrack is a modern React-based web application that helps users understand, monitor, and reduce their carbon footprint through intelligent activity tracking, analytics, personalized recommendations, and sustainability goals.
+EcoTrack is a modern web application designed to help individuals understand, monitor, and reduce their carbon footprint through intelligent tracking, analytics, and personalized recommendations.
 
-The platform transforms everyday activities into meaningful environmental insights, enabling users to make informed decisions and build eco-friendly habits.
+The platform enables users to log daily carbon-producing activities, visualize environmental impact, set sustainability goals, earn achievements, and receive actionable recommendations for reducing emissions.
 
----
-
-# Problem Statement
-
-Climate change is influenced by millions of everyday decisions that often go unnoticed.
-
-EcoTrack helps users:
-
-* Measure their daily carbon footprint
-* Understand major emission sources
-* Track sustainability progress
-* Build environmentally responsible habits
-* Make data-driven lifestyle improvements
+Built using React and Vite, EcoTrack emphasizes performance, accessibility, maintainability, and an intuitive user experience.
 
 ---
 
-# Features
+## Key Features
 
-## 🔐 Authentication
+### 🌍 Carbon Activity Tracking
 
-* User Sign Up
-* User Login
-* Session management
-* Client-side validation
-* Secure storage handling
-
----
-
-## 📊 Dashboard
-
-* Carbon Score
-* Daily CO₂ summary
-* Weekly CO₂ summary
-* Monthly CO₂ summary
-* Recent activities
-* Sustainability overview
+* Car travel tracking
+* Bus travel tracking
+* Train travel tracking
+* Electricity usage tracking
+* Food consumption tracking
+* Waste generation tracking
+* Automatic CO₂ calculation
+* Persistent local storage
 
 ---
 
-## 🚗 Activity Tracker
+### 📊 Analytics Dashboard
 
-Track emissions from:
-
-* Car Travel
-* Bus Travel
-* Train Travel
-* Electricity Usage
-* Food Consumption
-* Waste Generation
-* Shopping Activities
-* Water Usage
-
-Features include:
-
-* Add activities
-* Delete activities
-* Search
-* Filters
-* Sorting
-* History management
-
----
-
-## 📈 Analytics
-
-Interactive analytics provide:
-
-* Daily trends
-* Weekly trends
-* Monthly trends
+* Daily CO₂ statistics
+* Weekly CO₂ statistics
+* Monthly CO₂ statistics
+* Carbon Score calculation
 * Activity breakdown
-* Category summaries
-* Carbon statistics
+* Historical analytics
+* Monthly trends
+* Visual charts
 
 ---
 
-## 🤖 AI Recommendations
+### 🤖 Smart Recommendations
 
-Personalized recommendations based on recorded activities.
-
-Examples:
-
-* Reduce private vehicle usage
-* Use public transportation
-* Lower electricity consumption
-* Improve waste management
-* Adopt sustainable habits
+* Personalized sustainability recommendations
+* Activity-based suggestions
+* Carbon reduction insights
+* Goal-oriented recommendations
+* Intelligent environmental tips
 
 ---
 
-## 🎯 Goal Tracking
+### 🏆 Achievement System
 
-* Monthly CO₂ goals
+* First Activity badge
+* Walking Starter
+* Eco Traveler
+* Public Transport Hero
+* Energy Saver
+* Waste Reducer
+* Carbon Reducer
+* Goal Achiever
+* 7-Day Streak
+* 30-Day Streak
+
+---
+
+### 🎯 Goal Management
+
+* Monthly carbon goals
+* Goal tracking
 * Progress monitoring
-* Goal completion tracking
-* Sustainability improvements
+* Achievement integration
 
 ---
 
-## 🏆 Achievement System
+### 👤 User Features
 
-Gamified sustainability experience:
-
-* Achievement badges
-* Milestone tracking
-* Progress visualization
-* Eco accomplishments
-
----
-
-## 👤 User Profile
-
-Profile includes:
-
-* User details
-* Carbon history
-* Achievements
-* Goals
+* Authentication
+* User profile
+* Dashboard
+* Preferences
 * Settings
-* Logout
+* Logout functionality
 
 ---
 
-## ⚙️ Preferences & Settings
-
-Users can configure:
-
-* Preferred units
-* Dashboard preferences
-* Analytics preferences
-* Notifications
-* Theme preference
-* Save mode
-
----
-
-## 📤 Export Features
+### 📤 Export Features
 
 * Export Activities CSV
 * Export Dashboard CSV
@@ -150,24 +101,67 @@ Users can configure:
 
 ---
 
-# Technology Stack
+# Security Improvements
 
-## Frontend
+Frontend-focused security enhancements include:
+
+* Input validation
+* Input sanitization
+* Safe local storage wrapper
+* Configurable storage keys
+* Environment-based configuration support
+* Validation utilities
+* Defensive storage handling
+* Improved data integrity checks
+
+> Note: Server-side features such as JWT authentication, password hashing, SQL injection protection, CSRF protection, and rate limiting require a backend implementation and are outside the scope of this frontend-only project.
+
+---
+
+# Performance Optimizations
+
+* React memoization
+* Optimized rendering
+* Reduced unnecessary re-renders
+* Modular architecture
+* Efficient state management
+* Reusable utility services
+* Lightweight Vite build
+
+---
+
+# Accessibility
+
+* Keyboard-friendly interactions
+* Semantic structure
+* Accessible forms
+* Responsive design
+* Focus management
+* Improved usability
+
+---
+
+# Testing
+
+Validated using dedicated test suites:
+
+* ✅ Activity Service Tests
+* ✅ Activity Analytics Tests
+* ✅ Validation Tests
+
+All tests pass successfully.
+
+---
+
+# Technology Stack
 
 * React
 * Vite
 * JavaScript (ES Modules)
-
-## Styling
-
 * CSS
-* Responsive Design
-* Modern UI Components
-
-## Storage
-
 * Local Storage
-* Configurable Storage Layer
+* Git & GitHub
+* Vercel
 
 ---
 
@@ -175,113 +169,157 @@ Users can configure:
 
 ```text
 src/
-│
-├── components/
-├── context/
-├── pages/
-├── utils/
-├── config/
-├── assets/
-└── styles/
+ ├── assets/
+ ├── components/
+ ├── config/
+ ├── context/
+ ├── pages/
+ ├── services/
+ ├── styles/
+ ├── utils/
+ └── App.jsx
 ```
 
-The application follows a modular architecture with reusable components and separated business logic for maintainability.
-
 ---
 
-# Security Considerations
+# How to Run
 
-Implemented frontend protections include:
-
-* Input validation
-* Sanitized user input
-* Centralized security configuration
-* Storage abstraction layer
-* Safe parsing utilities
-* Configurable storage keys
-
-**Note:** Production-grade features such as password hashing, JWT authentication, SQL injection prevention, CSRF protection, and server-side rate limiting require a backend implementation and are outside the scope of this frontend application.
-
----
-
-# Performance Optimizations
-
-* Component optimization
-* Efficient rendering
-* Reusable architecture
-* Optimized state management
-* Lightweight implementation
-* Minimal dependencies
-
----
-
-# Accessibility
-
-Designed with accessibility considerations including:
-
-* Keyboard navigation
-* Visible focus indicators
-* Responsive layouts
-* Semantic structure
-* Accessible forms
-* ARIA-friendly interactions
-
----
-
-# Testing
-
-Validated functionality includes:
-
-* Activity Service tests
-* Activity Analytics tests
-* Validation tests
-
-Manual verification includes:
-
-* Login
-* Signup
-* Dashboard
-* Activity tracking
-* Analytics
-* Recommendations
-* Goals
-* Achievements
-* Navigation
-* Export functionality
-
----
-
-# Installation
+## Clone
 
 ```bash
 git clone https://github.com/khanadil84/carbon-footprint-awareness-platform.git
+```
 
-cd carbon-footprint-awareness-platform
+## Install
 
+```bash
 npm install
+```
 
+## Start Development Server
+
+```bash
 npm run dev
+```
+
+## Build
+
+```bash
+npm run build
+```
+
+## Preview
+
+```bash
+npm run preview
 ```
 
 ---
 
-# Demo Workflow
+# Assumptions
 
-1. Launch EcoTrack
-2. Sign Up or Log In
-3. Add daily activities
-4. Track carbon emissions
-5. View analytics
-6. Review recommendations
-7. Set sustainability goals
-8. Unlock achievements
-9. Monitor long-term progress
+* CO₂ values are estimated using predefined emission factors.
+* User data is stored locally in the browser.
+* Analytics are generated from recorded activities.
+* Recommendations are based on tracked user behavior.
+* The application is designed as a frontend-focused sustainability platform.
 
 ---
 
 # Future Enhancements
 
 * Backend integration
+* Secure JWT authentication
+* Password hashing
+* Cloud database support
+* Multi-user synchronization
+* AI-powered sustainability assistant
+* Real-time notifications
+* Carbon offset marketplace
+* Community leaderboards
+* Mobile application
+
+---
+
+# Deployment
+
+**Production:** https://carbon-footprint-awareness-platform-two.vercel.app
+
+---
+
+# Author
+
+**Adil Khan**
+
+GitHub: https://github.com/khanadil84
+
+---
+
+## 🌱 Building awareness today for a more sustainable tomorrow.
+```
+src/
+ ├── assets/
+ ├── components/
+ ├── config/
+ ├── context/
+ ├── pages/
+ ├── services/
+ ├── styles/
+ ├── utils/
+ └── App.jsx
+```
+
+---
+
+# How to Run
+
+## Clone
+
+```bash
+git clone https://github.com/khanadil84/carbon-footprint-awareness-platform.git
+```
+
+## Install
+
+```bash
+npm install
+```
+
+## Start Development Server
+
+```bash
+npm run dev
+```
+
+## Build
+
+```bash
+npm run build
+```
+
+## Preview
+
+```bash
+npm run preview
+```
+
+---
+
+# Assumptions
+
+* CO₂ values are estimated using predefined emission factors.
+* User data is stored locally in the browser.
+* Analytics are generated from recorded activities.
+* Recommendations are based on tracked user behavior.
+* The application is designed as a frontend-focused sustainability platform.
+>>>>>>> 00d8a2d (Update README with project documentation)
+
+---
+
+# Future Enhancements
+
+* Backend integration
+<<<<<<< HEAD
 * Cloud synchronization
 * JWT authentication
 * Password hashing
@@ -311,3 +349,32 @@ npm run dev
 # License
 
 This project was developed for educational and hackathon purposes.
+=======
+* Secure JWT authentication
+* Password hashing
+* Cloud database support
+* Multi-user synchronization
+* AI-powered sustainability assistant
+* Real-time notifications
+* Carbon offset marketplace
+* Community leaderboards
+* Mobile application
+
+---
+
+# Deployment
+
+**Production:** https://carbon-footprint-awareness-platform-two.vercel.app
+
+---
+
+# Author
+
+**Adil Khan**
+
+GitHub: https://github.com/khanadil84
+
+---
+
+## 🌱 Building awareness today for a more sustainable tomorrow.
+>>>>>>> 00d8a2d (Update README with project documentation)
