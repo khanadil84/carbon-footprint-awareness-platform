@@ -18,6 +18,11 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Enable smooth scrolling for in-page anchor navigation */
+html {
+  scroll-behavior: smooth;
+}
+
 #root {
   min-height: 100vh;
   display: flex;
