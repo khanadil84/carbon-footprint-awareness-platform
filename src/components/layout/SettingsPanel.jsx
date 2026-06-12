@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { SettingsService } from '../../utils/settingsService';
+import { STORAGE_KEYS } from '../../config/securityConfig.js';
 import '../../components/dashboard/dashboard.css';
 import '../../components/dashboard/print.css';
 import './settings.css';
@@ -10,7 +11,7 @@ export const SettingsPanel = () => {
 
   useEffect(() => {
     // listen for external changes
-    const onStorage = (e) => { if (e.key === 'eco_settings_v1') setSettings(SettingsService.loadSettings()); };
+    const onStorage = (e) => { if (e.key === STORAGE_KEYS.SETTINGS) setSettings(SettingsService.loadSettings()); };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, []);

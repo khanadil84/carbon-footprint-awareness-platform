@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { GoalService } from '../../utils/goalService';
+import { STORAGE_KEYS } from '../../config/securityConfig.js';
+import { sanitizeNumber } from '../../utils/validation';
 import { activityService } from '../../utils/activityService';
 import { Button } from '../ui/Button';
 
@@ -18,7 +20,7 @@ export const MonthlyGoal = () => {
   useEffect(() => {
     refresh();
     const onStorage = (e) => {
-      if (e.key === 'eco_activities_v1' || e.key === 'eco_goal_v1') {
+      if ([STORAGE_KEYS.ACTIVITIES, STORAGE_KEYS.GOAL].includes(e.key)) {
         setGoal(GoalService.loadGoal());
         refresh();
       }
@@ -28,8 +30,8 @@ export const MonthlyGoal = () => {
   }, [goal]);
 
   const handleSave = () => {
-    const val = Number(input);
-    if (isNaN(val) || val <= 0) return;
+    const val = sanitizeNumber(input, null);
+    if (val === null || val <= 0) return;
     const newGoal = { targetKg: val, updatedAt: new Date().toISOString() };
     GoalService.saveGoal(newGoal);
     setGoal(newGoal);

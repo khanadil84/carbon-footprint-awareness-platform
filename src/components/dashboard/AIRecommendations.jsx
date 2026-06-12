@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { activityService } from '../../utils/activityService';
 import { generateRecommendations } from '../../utils/recommendationService';
+import { STORAGE_KEYS } from '../../config/securityConfig.js';
 
 export const AIRecommendations = () => {
   const [recs, setRecs] = useState([]);
@@ -14,7 +15,7 @@ export const AIRecommendations = () => {
   useEffect(() => {
     refresh();
     const onStorage = (e) => {
-      if (e.key === 'eco_activities_v1') refresh();
+      if (e.key === STORAGE_KEYS.ACTIVITIES) refresh();
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);

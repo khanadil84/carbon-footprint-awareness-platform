@@ -5,7 +5,7 @@ import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../context/AuthContext';
-import { validateEmail, validatePassword, checkPasswordStrength } from '../../utils/validation';
+import { validateEmail, validatePassword, checkPasswordStrength, sanitizeString, normalizeName } from '../../utils/validation';
 
 export const SignUpPage = () => {
   const navigate = useNavigate();
@@ -32,12 +32,14 @@ export const SignUpPage = () => {
     let hasError = false;
     const newErrors = { name: '', email: '', password: '', submit: '' };
 
-    if (!formData.name.trim()) {
+    const name = sanitizeString(formData.name);
+    if (!name) {
       newErrors.name = 'Full name is required';
       hasError = true;
     }
 
-    const emailError = validateEmail(formData.email);
+    const email = sanitizeString(formData.email);
+    const emailError = validateEmail(email);
     if (emailError) {
       newErrors.email = emailError;
       hasError = true;
@@ -62,7 +64,7 @@ export const SignUpPage = () => {
     setErrors({ name: '', email: '', password: '', submit: '' });
 
     try {
-      await register(formData.name, formData.email, formData.password);
+      await register(normalizeName(name), email, formData.password);
       navigate('/dashboard');
     } catch (err) {
       setErrors(prev => ({ ...prev, submit: err.message || 'Failed to create account' }));

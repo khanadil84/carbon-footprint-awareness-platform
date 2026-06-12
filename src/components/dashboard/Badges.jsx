@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { AchievementService } from '../../utils/achievementService';
 import { activityService } from '../../utils/activityService';
 import { GoalService } from '../../utils/goalService';
+import { STORAGE_KEYS } from '../../config/securityConfig.js';
 
 export const Badges = () => {
   const [data, setData] = useState({ achievements: [], recent: null });
@@ -16,7 +17,7 @@ export const Badges = () => {
   useEffect(() => {
     refresh();
     const onStorage = (e) => {
-      if (['eco_activities_v1', 'eco_goal_v1', 'eco_achievements_v1'].includes(e.key)) refresh();
+      if ([STORAGE_KEYS.ACTIVITIES, STORAGE_KEYS.GOAL, STORAGE_KEYS.ACHIEVEMENTS].includes(e.key)) refresh();
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);

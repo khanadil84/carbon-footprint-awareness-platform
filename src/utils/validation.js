@@ -39,3 +39,31 @@ export const checkPasswordStrength = (password) => {
       return { score: 0, label: 'Weak', color: 'var(--color-gray-200)' };
   }
 };
+
+  // Sanitization and normalization helpers
+  export const sanitizeString = (s) => {
+    if (s === null || s === undefined) return '';
+    try {
+      // Trim, remove control characters and normalize whitespace
+      return String(s).replace(/[\x00-\x1F\x7F]/g, '').trim().replace(/\s+/g, ' ');
+    } catch (e) {
+      return '';
+    }
+  };
+
+  export const normalizeName = (s) => {
+    const clean = sanitizeString(s);
+    // Capitalize words
+    return clean.split(' ').filter(Boolean).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  };
+
+  export const sanitizeNumber = (n, fallback = 0) => {
+    const num = Number(n);
+    if (Number.isFinite(num)) return num;
+    return fallback;
+  };
+
+  export const validActivityType = (t) => {
+    const allowed = ['Car','Bus','Train','Flight','Electricity','Food','Waste'];
+    return allowed.includes(String(t));
+  };

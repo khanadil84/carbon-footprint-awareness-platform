@@ -7,6 +7,7 @@ import { activityService } from '../utils/activityService';
 import { calculateCarbonScore } from '../utils/carbonScoreService';
 import { AchievementService } from '../utils/achievementService';
 import { GoalService } from '../utils/goalService';
+import { STORAGE_KEYS } from '../config/securityConfig.js';
 import './../components/dashboard/dashboard.css';
 import './profile.css';
 
@@ -38,7 +39,10 @@ export const ProfilePage = () => {
       setAchievements(ach.achievements || []);
     };
     load();
-    const onStorage = (e) => { if (['eco_activities_v1','eco_goal_v1','eco_achievements_v1'].includes(e.key)) load(); };
+    const onStorage = (e) => {
+      const keys = [STORAGE_KEYS.ACTIVITIES, STORAGE_KEYS.GOAL, STORAGE_KEYS.ACHIEVEMENTS];
+      if (keys.includes(e.key)) load();
+    };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, []);

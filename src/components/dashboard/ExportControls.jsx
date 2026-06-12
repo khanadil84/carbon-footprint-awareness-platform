@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { activityService } from '../../utils/activityService';
 import { ExportService } from '../../utils/exportService';
+import { STORAGE_KEYS } from '../../config/securityConfig.js';
 
 export const ExportControls = () => {
   const [count, setCount] = useState(0);
@@ -9,7 +10,7 @@ export const ExportControls = () => {
 
   useEffect(() => {
     refresh();
-    const onStorage = (e) => { if (e.key === 'eco_activities_v1') refresh(); };
+    const onStorage = (e) => { if (e.key === STORAGE_KEYS.ACTIVITIES) refresh(); };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, []);

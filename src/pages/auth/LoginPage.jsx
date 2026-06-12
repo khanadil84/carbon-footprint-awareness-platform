@@ -5,7 +5,7 @@ import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../context/AuthContext';
-import { validateEmail, validatePassword } from '../../utils/validation';
+import { validateEmail, validatePassword, sanitizeString } from '../../utils/validation';
 
 export const LoginPage = () => {
   const navigate = useNavigate();
@@ -31,8 +31,12 @@ export const LoginPage = () => {
     e.preventDefault();
     
     // Validate
-    const emailError = validateEmail(formData.email);
-    const passwordError = validatePassword(formData.password);
+    // sanitize inputs
+    const email = sanitizeString(formData.email);
+    const password = typeof formData.password === 'string' ? formData.password.trim() : formData.password;
+
+    const emailError = validateEmail(email);
+    const passwordError = validatePassword(password);
     
     if (emailError || passwordError) {
       setErrors({ email: emailError, password: passwordError, submit: '' });
@@ -43,7 +47,7 @@ export const LoginPage = () => {
     setErrors({ email: '', password: '', submit: '' });
 
     try {
-      await login(formData.email, formData.password, formData.rememberMe);
+      await login(email, password, formData.rememberMe);
       navigate('/dashboard');
     } catch (err) {
       setErrors(prev => ({ ...prev, submit: err.message || 'Failed to login' }));

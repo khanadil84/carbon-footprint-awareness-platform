@@ -1,13 +1,15 @@
 import { activityService } from './activityService.js';
 import { breakdownByCategory } from './activityAnalytics';
+import { safeGetItem, safeSetItem, safeParseJSON, safeRemoveItem } from './storage.js';
+import { sanitizeNumber } from './validation.js';
+import { STORAGE_KEYS } from '../config/securityConfig.js';
 
-const STORAGE_KEY = 'eco_goal_v1';
+const STORAGE_KEY = STORAGE_KEYS.GOAL;
 
 export const loadGoal = () => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
+    const raw = safeGetItem(STORAGE_KEY);
+    return safeParseJSON(raw, null);
   } catch (e) {
     console.error('Failed to load goal', e);
     return null;
@@ -15,11 +17,25 @@ export const loadGoal = () => {
 };
 
 export const saveGoal = (goal) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(goal));
+  try {
+    const toSave = {
+      ...goal,
+      targetKg: sanitizeNumber(goal && goal.targetKg, null)
+    };
+    safeSetItem(STORAGE_KEY, JSON.stringify(toSave));
+    return true;
+  } catch (e) {
+    console.error('Failed to save goal', e);
+    return false;
+  }
 };
 
 export const clearGoal = () => {
-  localStorage.removeItem(STORAGE_KEY);
+  try {
+    safeRemoveItem(STORAGE_KEY);
+  } catch (e) {
+    /* ignore */
+  }
 };
 
 const daysInMonth = (d = new Date()) => new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();

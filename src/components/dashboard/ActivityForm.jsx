@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/Button';
 import { activityService } from '../../utils/activityService';
+import { sanitizeNumber, validActivityType } from '../../utils/validation';
 
 const activityOptions = [
   { value: 'Car', label: 'Car Travel (km)', unit: 'km' },
@@ -19,15 +20,23 @@ export const ActivityForm = ({ onAdd }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const num = Number(value);
-    if (!value || isNaN(num) || num <= 0) {
-      setError('Please enter a valid number greater than 0');
-      return;
-    }
-    const activity = activityService.addActivity({ type, value: num });
+    try {
+      const num = sanitizeNumber(value, null);
+      if (num === null || num <= 0) {
+        setError('Please enter a valid number greater than 0');
+        return;
+      }
+      if (!validActivityType(type)) {
+        setError('Please select a valid activity type');
+        return;
+      }
+      const activity = activityService.addActivity({ type, value: num });
     setValue('');
     setError('');
     if (onAdd) onAdd(activity);
+    } catch (err) {
+      setError(err.message || 'Failed to add activity');
+    }
   };
 
   const unit = activityOptions.find(o => o.value === type)?.unit || '';

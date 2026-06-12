@@ -1,4 +1,7 @@
-const STORAGE_KEY = 'eco_settings_v1';
+import { safeGetItem, safeSetItem, safeParseJSON } from './storage.js';
+import { STORAGE_KEYS } from '../config/securityConfig.js';
+
+const STORAGE_KEY = STORAGE_KEYS.SETTINGS;
 
 const defaultSettings = () => ({
   units: 'metric', // 'metric' (kg, km) or 'imperial' (lbs, miles)
@@ -21,14 +24,12 @@ const isValid = (obj) => {
 
 const loadSettings = () => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultSettings();
-    const parsed = JSON.parse(raw);
+    const raw = safeGetItem(STORAGE_KEY);
+    const parsed = safeParseJSON(raw, null);
+    if (!parsed) return defaultSettings();
     if (!isValid(parsed)) {
-      // try to merge partials sensibly
       const base = defaultSettings();
       const merged = { ...base, ...(parsed || {}) };
-      // ensure types and allowed values
       if (!isValid(merged)) return base;
       return merged;
     }
@@ -46,7 +47,7 @@ const saveSettings = (settings) => {
       const merged = { ...base, ...(settings || {}) };
       return isValid(merged) ? merged : base;
     })();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+    safeSetItem(STORAGE_KEY, JSON.stringify(toSave));
     return toSave;
   } catch (e) {
     console.error('Failed to save settings', e);
@@ -57,7 +58,7 @@ const saveSettings = (settings) => {
 const resetSettings = () => {
   try {
     const defaults = defaultSettings();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(defaults));
+    safeSetItem(STORAGE_KEY, JSON.stringify(defaults));
     return defaults;
   } catch (e) {
     console.error('Failed to reset settings', e);

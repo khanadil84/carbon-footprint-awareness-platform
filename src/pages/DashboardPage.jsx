@@ -19,6 +19,7 @@ import './../components/dashboard/dashboard.css';
 import { activityService } from '../utils/activityService';
 import { calculateCarbonScore } from '../utils/carbonScoreService';
 import { SettingsService } from '../utils/settingsService';
+import { STORAGE_KEYS } from '../config/securityConfig.js';
 
 export const DashboardPage = () => {
   const { user, logout } = useAuth();
@@ -75,7 +76,7 @@ export const DashboardPage = () => {
 
   useEffect(() => {
     const onStorage = (e) => {
-      if (e.key === 'eco_activities_v1') refreshAll(activityService.loadActivities());
+      if (e.key === STORAGE_KEYS.ACTIVITIES) refreshAll(activityService.loadActivities());
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);

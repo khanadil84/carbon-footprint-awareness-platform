@@ -1,7 +1,10 @@
 import { activityService } from './activityService.js';
 import { GoalService } from './goalService';
 
-const STORAGE_KEY = 'eco_achievements_v1';
+import { safeGetItem, safeSetItem, safeParseJSON } from './storage.js';
+import { STORAGE_KEYS } from '../config/securityConfig.js';
+
+const STORAGE_KEY = STORAGE_KEYS.ACHIEVEMENTS;
 
 const nowIso = () => new Date().toISOString();
 
@@ -20,9 +23,8 @@ const defaultAchievements = [
 
 const loadSaved = () => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
-    return JSON.parse(raw);
+    const raw = safeGetItem(STORAGE_KEY);
+    return safeParseJSON(raw, {});
   } catch (e) {
     console.error('Failed to load achievements', e);
     return {};
@@ -30,7 +32,13 @@ const loadSaved = () => {
 };
 
 const saveSaved = (obj) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
+  try {
+    safeSetItem(STORAGE_KEY, JSON.stringify(obj || {}));
+    return true;
+  } catch (e) {
+    console.error('Failed to save achievements', e);
+    return false;
+  }
 };
 
 const daysKey = (d) => `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;

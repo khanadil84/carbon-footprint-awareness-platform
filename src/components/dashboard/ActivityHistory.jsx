@@ -4,6 +4,7 @@ import { activityService } from '../../utils/activityService';
 import { HistoryService } from '../../utils/historyService';
 import ActivityFilters from './ActivityFilters';
 import { Button } from '../ui/Button';
+import { STORAGE_KEYS } from '../../config/securityConfig.js';
 
 export const ActivityHistory = () => {
   const [filters, setFilters] = useState({});
@@ -33,7 +34,7 @@ export const ActivityHistory = () => {
   }, [page]);
 
   useEffect(() => {
-    const onStorage = (e) => { if (['eco_activities_v1'].includes(e.key)) runQuery(); };
+    const onStorage = (e) => { if ([STORAGE_KEYS.ACTIVITIES].includes(e.key)) runQuery(); };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, [runQuery]);

@@ -1,4 +1,8 @@
-const STORAGE_KEY = 'eco_activities_v1';
+import { safeGetItem, safeSetItem, safeParseJSON } from './storage.js';
+import { sanitizeNumber, validActivityType, sanitizeString } from './validation.js';
+import { STORAGE_KEYS } from '../config/securityConfig.js';
+
+const STORAGE_KEY = STORAGE_KEYS.ACTIVITIES;
 
 const emissionFactors = {
   car_km: 0.192, // kg CO2 per km
@@ -12,9 +16,10 @@ const emissionFactors = {
 
 const loadActivities = () => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw);
+    const raw = safeGetItem(STORAGE_KEY);
+    const parsed = safeParseJSON(raw, []);
+    if (!Array.isArray(parsed)) return [];
+    return parsed;
   } catch (e) {
     console.error('Failed to load activities', e);
     return [];
@@ -22,7 +27,13 @@ const loadActivities = () => {
 };
 
 const saveActivities = (list) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  try {
+    safeSetItem(STORAGE_KEY, JSON.stringify(list || []));
+    return true;
+  } catch (e) {
+    console.error('Failed to save activities', e);
+    return false;
+  }
 };
 
 const calculateEmission = (type, value) => {
@@ -48,13 +59,20 @@ const calculateEmission = (type, value) => {
 };
 
 const addActivity = ({ type, value, date = new Date().toISOString() }) => {
+  // sanitize inputs
+  const t = sanitizeString(type);
+  if (!validActivityType(t)) throw new Error('Invalid activity type');
+  const v = sanitizeNumber(value, null);
+  if (v === null || v <= 0) throw new Error('Invalid activity value');
+  const d = sanitizeString(date) || new Date().toISOString();
+
   const activities = loadActivities();
-  const co2 = calculateEmission(type, value);
+  const co2 = calculateEmission(t, v);
   const activity = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2,8),
-    date,
-    type,
-    value: Number(value),
+    date: d,
+    type: t,
+    value: Number(v),
     co2
   };
   const next = [activity, ...activities];

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ExportService } from '../../utils/exportService';
 import { activityService } from '../../utils/activityService';
+import { STORAGE_KEYS } from '../../config/securityConfig.js';
 import '../../components/dashboard/print.css';
 
 export const PrintableReport = () => {
@@ -15,7 +16,7 @@ export const PrintableReport = () => {
   useEffect(() => {
     refresh();
     const onStorage = (e) => {
-      if (['eco_activities_v1','eco_goal_v1','eco_achievements_v1'].includes(e.key)) refresh();
+      if ([STORAGE_KEYS.ACTIVITIES, STORAGE_KEYS.GOAL, STORAGE_KEYS.ACHIEVEMENTS].includes(e.key)) refresh();
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
