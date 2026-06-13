@@ -4,10 +4,16 @@ import { GoalService } from './goalService.js';
 import { AchievementService } from './achievementService.js';
 import { generateRecommendations } from './recommendationService.js';
 import { getCategoryForType } from '../config/constants.js';
+import { MAX_RECENT_ACTIVITIES } from '../config/securityConfig.js';
+
+const CSV_FORMULA_PREFIX = /^[=+\-@\t]/;
 
 const escapeCell = (v) => {
   if (v === null || v === undefined) return '';
-  const s = String(v);
+  let s = String(v);
+  if (CSV_FORMULA_PREFIX.test(s)) {
+    s = "'" + s;
+  }
   if (s.indexOf(',') >= 0 || s.indexOf('"') >= 0 || s.indexOf('\n') >= 0) {
     return '"' + s.replace(/"/g, '""') + '"';
   }
@@ -98,7 +104,7 @@ const makeReportData = (activities) => {
     breakdown,
     achievements,
     recommendations: recs,
-    recentActivities: activities.slice(0, 20)
+    recentActivities: activities.slice(0, MAX_RECENT_ACTIVITIES)
   };
 };
 

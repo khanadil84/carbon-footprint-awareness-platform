@@ -1,5 +1,5 @@
-// Safe wrappers around localStorage with defensive parsing and fallbacks
-// Adds small helpers for safe JSON stringify/parse and keeps APIs backward-compatible.
+// Safe wrappers around localStorage with defensive parsing, fallbacks, and recovery.
+
 /**
  * Resolve a storage provider (browser localStorage when available).
  * Returns null in non-browser or restricted environments.
@@ -22,7 +22,6 @@ const safeGetItem = (key) => {
   try {
     return storage.getItem(key);
   } catch (e) {
-    // avoid leaking sensitive internals in production logs
     console.error('localStorage.getItem failed', e && e.message ? e.message : e);
     return null;
   }
@@ -47,7 +46,7 @@ const safeSetItem = (key, value) => {
 };
 
 /**
- * Safely remove a key from storage.
+ * Safely remove a key from storage, including any associated metadata keys.
  * @param {string} key
  * @returns {boolean} success
  */
@@ -64,19 +63,73 @@ const safeRemoveItem = (key) => {
 };
 
 /**
+ * Attempt to recover corrupted JSON strings by trimming, looking for valid
+ * JSON prefixes, and removing trailing garbage.
+ * @param {string} raw
+ * @returns {string|null} recovered string or null if recovery failed
+ */
+const recoverJSON = (raw) => {
+  const s = raw.trim();
+  if (!s) return null;
+
+  // Try to find a complete JSON value by scanning brackets/braces
+  const pairs = { '{': '}', '[': ']' };
+  const open = s[0];
+  const close = pairs[open];
+  if (!close) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (escape) { escape = false; continue; }
+    if (ch === '\\') { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === open) depth++;
+    else if (ch === close) depth--;
+    if (depth === 0) {
+      const candidate = s.slice(0, i + 1);
+      try { return JSON.parse(candidate), candidate; } catch { return null; }
+    }
+  }
+  return null;
+};
+
+/**
  * Parse JSON safely and return a fallback on error.
+ * Attempts corrupted data recovery before giving up.
  * @template T
  * @param {string|null|undefined} raw
- * @param {T|null} [fallback=null]
- * @returns {T|null}
+ * @param {T} [fallback]
+ * @returns {T}
  */
 const safeParseJSON = (raw, fallback = null) => {
   if (raw === null || raw === undefined) return fallback;
   try {
     return JSON.parse(raw);
   } catch {
-    console.warn('Failed to parse JSON from storage, returning fallback');
+    const recovered = recoverJSON(raw);
+    if (recovered !== null) {
+      try { return JSON.parse(recovered); } catch { /* recovery attempt also failed */ }
+    }
     return fallback;
+  }
+};
+
+/**
+ * Deep clone a value using JSON round-trip.
+ * Returns the original value if cloning fails.
+ * @template T
+ * @param {T} value
+ * @returns {T}
+ */
+const deepClone = (value) => {
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch {
+    return value;
   }
 };
 
@@ -94,12 +147,34 @@ const safeStringifyJSON = (value) => {
   }
 };
 
-const safeGetJSON = (key, fallback = null) => {
+/**
+ * Read and parse a JSON value from storage with optional schema validation.
+ * Returns a deep clone of the parsed data to prevent in-memory mutation.
+ * If validation fails, the fallback is returned.
+ * @template T
+ * @param {string} key
+ * @param {T} [fallback]
+ * @param {function(T):boolean} [validate]
+ * @returns {T}
+ */
+const safeGetJSON = (key, fallback = null, validate = null) => {
   const raw = safeGetItem(key);
-  return safeParseJSON(raw, fallback);
+  const parsed = safeParseJSON(raw, null);
+  if (parsed === null) return deepClone(fallback);
+  if (typeof validate === 'function' && !validate(parsed)) return deepClone(fallback);
+  return deepClone(parsed);
 };
 
-const safeSetJSON = (key, value) => {
+/**
+ * Validate and write a JSON value to storage.
+ * Returns true on success, false on failure.
+ * @param {string} key
+ * @param {any} value
+ * @param {function(any):boolean} [validate]
+ * @returns {boolean}
+ */
+const safeSetJSON = (key, value, validate = null) => {
+  if (typeof validate === 'function' && !validate(value)) return false;
   const raw = safeStringifyJSON(value);
   if (raw === null) return false;
   return safeSetItem(key, raw);

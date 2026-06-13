@@ -1,6 +1,6 @@
 import { aggregate, breakdownByCategory } from './activityAnalytics.js';
 import { safeGetJSON, safeSetJSON, safeRemoveItem } from './storage.js';
-import { sanitizeNumber } from './validation.js';
+import { sanitizeNumber } from '../domain/validation.js';
 import { STORAGE_KEYS } from '../config/securityConfig.js';
 import { daysInMonth } from '../domain/dateUtils.js';
 import { computeStatus, generateInsight } from '../domain/goalProgress.js';

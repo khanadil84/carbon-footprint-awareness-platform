@@ -1,5 +1,6 @@
 import { pad, toDateKey } from '../domain/dateUtils.js';
 import { round3 } from '../domain/mathUtils.js';
+import { DEFAULT_ANALYTICS_DAYS } from '../config/securityConfig.js';
 
 /**
  * Aggregate CO₂ by day for the last N days (zero-filled).
@@ -151,13 +152,13 @@ export const summaryStats = (activities) => {
     return { highestEmissionCategory: null, totalActivities: 0, avgDaily: 0, bestDay: null };
   }
   const breakdown = breakdownByCategory(activities);
-  const days = aggregateByDay(activities, 30);
+  const days = aggregateByDay(activities, DEFAULT_ANALYTICS_DAYS);
   const total30 = days.reduce((s, d) => s + d.value, 0);
 
   return {
     highestEmissionCategory: breakdown.list.length > 0 ? breakdown.list[0].type : null,
     totalActivities: activities.length,
-    avgDaily: parseFloat((total30 / 30).toFixed(3)),
+    avgDaily: parseFloat((total30 / DEFAULT_ANALYTICS_DAYS).toFixed(3)),
     bestDay: findBestDay(activities)
   };
 };

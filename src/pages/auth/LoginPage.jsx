@@ -5,7 +5,7 @@ import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../context/useAuth';
-import { validateEmail, validatePassword, sanitizeString } from '../../utils/validation';
+import { validateEmail, validatePassword, sanitizeString } from '../../domain/validation.js';
 
 export const LoginPage = () => {
   const navigate = useNavigate();
@@ -29,15 +29,12 @@ export const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validate
-    // sanitize inputs
+
     const email = sanitizeString(formData.email);
     const password = typeof formData.password === 'string' ? formData.password.trim() : formData.password;
-
     const emailError = validateEmail(email);
     const passwordError = validatePassword(password);
-    
+
     if (emailError || passwordError) {
       setErrors({ email: emailError, password: passwordError, submit: '' });
       return;

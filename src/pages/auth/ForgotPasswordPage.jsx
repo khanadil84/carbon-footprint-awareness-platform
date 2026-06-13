@@ -5,7 +5,7 @@ import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { authService } from '../../services/mockAuthService';
-import { validateEmail } from '../../utils/validation';
+import { validateEmail } from '../../domain/validation.js';
 
 export const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');

@@ -5,7 +5,7 @@ import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../context/useAuth';
-import { validateEmail, validatePassword, checkPasswordStrength, sanitizeString, normalizeName } from '../../utils/validation';
+import { auth, checkPasswordStrength } from '../../domain/validation.js';
 
 export const SignUpPage = () => {
   const navigate = useNavigate();
@@ -25,28 +25,10 @@ export const SignUpPage = () => {
     }
   };
 
-  const validateForm = (data, strength) => {
-    const errors = { name: '', email: '', password: '', submit: '' };
-    let hasError = false;
-
-    const name = sanitizeString(data.name);
-    if (!name) { errors.name = 'Full name is required'; hasError = true; }
-
-    const email = sanitizeString(data.email);
-    const emailError = validateEmail(email);
-    if (emailError) { errors.email = emailError; hasError = true; }
-
-    const passwordError = validatePassword(data.password);
-    if (passwordError) { errors.password = passwordError; hasError = true; }
-    else if (strength.score < 4) { errors.password = 'Password must meet all complexity requirements'; hasError = true; }
-
-    return { name: normalizeName(name), email, errors, hasError };
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const { name, email, errors, hasError } = validateForm(formData, passwordStrength);
+    const { name, email, errors, hasError } = auth.validateForm(formData);
     if (hasError) { setErrors(errors); return; }
 
     setIsSubmitting(true);

@@ -3,13 +3,18 @@ import { safeGetJSON, safeSetJSON } from './storage.js';
 import { STORAGE_KEYS } from '../config/securityConfig.js';
 import { nowIso, daysKey, lastNDatesSet } from '../domain/dateUtils.js';
 import { defaultAchievements } from '../domain/achievementDefinitions.js';
+import { achievements } from '../domain/validation.js';
 
 const STORAGE_KEY = STORAGE_KEYS.ACHIEVEMENTS;
 
-const loadSaved = () => safeGetJSON(STORAGE_KEY, {});
+const loadSaved = () => {
+  const parsed = safeGetJSON(STORAGE_KEY, {});
+  return achievements.isValidSavedMap(parsed) ? parsed : {};
+};
 
 const saveSaved = (obj) => {
-  safeSetJSON(STORAGE_KEY, obj || {});
+  if (!achievements.isValidSavedMap(obj)) return false;
+  safeSetJSON(STORAGE_KEY, obj);
   return true;
 };
 

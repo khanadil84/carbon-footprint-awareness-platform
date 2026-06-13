@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '../ui/Button';
 import { ActivityService } from '../../utils/activityService';
-import { sanitizeNumber, validActivityType } from '../../utils/validation';
+import { sanitizeNumber, activity } from '../../domain/validation.js';
 import { ACTIVITY_OPTIONS } from '../../config/constants.js';
 
 export const ActivityForm = ({ onAdd }) => {
@@ -12,11 +12,11 @@ export const ActivityForm = ({ onAdd }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     const num = sanitizeNumber(value, null);
-    if (num === null || num <= 0) {
+    if (!activity.isValidValue(num)) {
       setError('Please enter a valid number greater than 0');
       return;
     }
-    if (!validActivityType(type)) {
+    if (!activity.isValidType(type)) {
       setError('Please select a valid activity type');
       return;
     }

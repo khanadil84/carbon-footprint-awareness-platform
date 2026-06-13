@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { GoalService } from '../../utils/goalService';
 import { STORAGE_KEYS } from '../../config/securityConfig.js';
-import { sanitizeNumber } from '../../utils/validation';
+import { sanitizeNumber } from '../../domain/validation.js';
 import { ActivityService } from '../../utils/activityService';
 import { Button } from '../ui/Button';
 
