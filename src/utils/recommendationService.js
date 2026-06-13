@@ -1,164 +1,106 @@
-import { breakdownByCategory, summaryStats } from './activityAnalytics.js';
-import { activityService } from './activityService.js';
+import { breakdownByCategory, aggregate } from './activityAnalytics.js';
+import { clamp } from '../domain/mathUtils.js';
+import { typeMapFromBreakdown } from '../domain/breakdownUtils.js';
+const priorityOrder = { High: 0, Medium: 1, Low: 2 };
 
-const clamp = (v) => Math.max(0, Number(v) || 0);
+const rec = (title, description, priority, estimatedSavingsKg, suggestion, encouragement = null) => ({
+  title,
+  description,
+  priority,
+  estimatedSavingsKg: Number((estimatedSavingsKg || 0).toFixed(3)),
+  suggestion,
+  encouragement
+});
 
-// Deterministic rules for recommendations
-export const generateRecommendations = (activities) => {
-  const recs = [];
-  const breakdown = breakdownByCategory(activities);
-  const summary = summaryStats(activities);
-  const monthlyTotal = activityService.aggregate(activities).totals.monthly || 0;
-
-  // Helper to push recommendation
-  const push = (obj) => recs.push({
-    title: obj.title,
-    description: obj.description,
-    priority: obj.priority,
-    estimatedSavingsKg: Number((obj.estimatedSavingsKg || 0).toFixed(3)),
-    suggestion: obj.suggestion,
-    encouragement: obj.encouragement || null
-  });
-
-  // Empty dataset
-  if (!activities || activities.length === 0) {
-    push({
-      title: 'No activity data yet',
-      description: 'Add activities to get personalized recommendations and track your CO₂ impact.',
-      priority: 'Low',
-      estimatedSavingsKg: 0,
-      suggestion: 'Start by adding a recent trip, electricity usage, or food/waste entry.'
-    });
-    return recs;
-  }
-
-  // Positive: low monthly emissions
-  if (monthlyTotal <= 50) {
-    push({
-      title: 'Excellent low-emission month',
-      description: `Your monthly CO₂ total is low (${monthlyTotal} kg).` ,
-      priority: 'Low',
-      estimatedSavingsKg: 0,
-      suggestion: 'Keep up the good habits — small changes compound over time.',
-      encouragement: 'Great job — your lifestyle choices are having positive impact.'
-    });
-  }
-
-  // Encourage public transit / active travel
-  const bus = breakdown.list.find(l => l.type === 'Bus');
-  const train = breakdown.list.find(l => l.type === 'Train');
-  if ((bus && bus.pct >= 35) || (train && train.pct >= 35)) {
-    push({
-      title: 'Great use of public transit',
-      description: 'A high share of your travel is by bus or train.',
-      priority: 'Low',
-      estimatedSavingsKg: 0,
-      suggestion: 'Keep using public transit and consider season passes or active travel for short trips.',
-      encouragement: 'Nice — public transit reduces per-person emissions significantly.'
-    });
-  }
-
-  // High car travel
-  const car = breakdown.list.find(l => l.type === 'Car');
-  if (car) {
-    const isHigh = car.value >= 100 || (car.pct >= 30 && monthlyTotal >= 50);
-    if (isHigh) {
-      const est = clamp(car.value * 0.25); // assume 25% reducible
-      push({
-        title: 'High car travel detected',
-        description: `Car travel accounts for ${car.pct}% of your emissions (${car.value} kg).`,
-        priority: 'High',
-        estimatedSavingsKg: est,
-        suggestion: 'Try carpooling, combine errands, work remotely when possible, or switch short trips to walking/biking.',
-        encouragement: null
-      });
-    }
-  }
-
-  // High flights
-  const flight = breakdown.list.find(l => l.type === 'Flight');
-  if (flight) {
-    const isHigh = flight.value >= 200 || (flight.pct >= 20 && monthlyTotal >= 100);
-    if (isHigh) {
-      const est = clamp(flight.value * 0.4); // assume 40% reducible through fewer flights
-      push({
-        title: 'Frequent flights detected',
-        description: `Flights contribute ${flight.pct}% of emissions (${flight.value} kg).`,
-        priority: 'High',
-        estimatedSavingsKg: est,
-        suggestion: 'Consider fewer short-haul flights, choose rail where feasible, and combine trips to reduce frequency.',
-        encouragement: null
-      });
-    }
-  }
-
-  // High electricity
-  const elec = breakdown.list.find(l => l.type === 'Electricity');
-  if (elec) {
-    const isHigh = elec.value >= 150 || (elec.pct >= 25 && monthlyTotal >= 50);
-    if (isHigh) {
-      const est = clamp(elec.value * 0.2); // 20% savings possible
-      push({
-        title: 'High electricity usage',
-        description: `Electricity accounts for ${elec.pct}% of your emissions (${elec.value} kg).`,
-        priority: 'Medium',
-        estimatedSavingsKg: est,
-        suggestion: 'Switch to LED lighting, optimize heating/cooling, and unplug idle devices to save energy.',
-        encouragement: null
-      });
-    }
-  }
-
-  // High food emissions
-  const food = breakdown.list.find(l => l.type === 'Food');
-  if (food) {
-    const isHigh = food.value >= 100 || (food.pct >= 20 && monthlyTotal >= 50);
-    if (isHigh) {
-      const est = clamp(food.value * 0.15);
-      push({
-        title: 'High food-related emissions',
-        description: `Food accounts for ${food.pct}% of emissions (${food.value} kg).`,
-        priority: 'Medium',
-        estimatedSavingsKg: est,
-        suggestion: 'Try reducing meat consumption, choose local seasonal produce, and reduce food waste.',
-        encouragement: null
-      });
-    }
-  }
-
-  // High waste
-  const waste = breakdown.list.find(l => l.type === 'Waste');
-  if (waste) {
-    const isHigh = waste.value >= 50 || (waste.pct >= 15 && monthlyTotal >= 50);
-    if (isHigh) {
-      const est = clamp(waste.value * 0.2);
-      push({
-        title: 'High waste generation',
-        description: `Waste contributes ${waste.pct}% of emissions (${waste.value} kg).`,
-        priority: 'Medium',
-        estimatedSavingsKg: est,
-        suggestion: 'Increase recycling, compost organic waste, and choose products with less packaging.',
-        encouragement: null
-      });
-    }
-  }
-
-  // If no issues found and not already low-emission message, offer encouragement
-  if (recs.length === 0) {
-    push({
-      title: 'Looking good',
-      description: 'No major emission hotspots detected in your recent activity.',
-      priority: 'Low',
-      estimatedSavingsKg: 0,
-      suggestion: 'Keep tracking activities — small improvements can make a big difference over time.',
-      encouragement: 'Nice work — continue your sustainable habits.'
-    });
-  }
-
-  // Sort deterministically: High -> Medium -> Low, then by title
-  const priorityOrder = { High: 0, Medium: 1, Low: 2 };
-  recs.sort((a,b) => (priorityOrder[a.priority] - priorityOrder[b.priority]) || a.title.localeCompare(b.title));
-  return recs;
+const ruleEmpty = (activities) => {
+  if (activities && activities.length > 0) return null;
+  return rec('No activity data yet', 'Add activities to get personalized recommendations and track your CO₂ impact.', 'Low', 0, 'Start by adding a recent trip, electricity usage, or food/waste entry.');
 };
 
-export default { generateRecommendations };
+const ruleLowEmissions = (monthlyTotal) => {
+  if (monthlyTotal > 50) return null;
+  return rec('Excellent low-emission month', `Your monthly CO₂ total is low (${monthlyTotal} kg).`, 'Low', 0, 'Keep up the good habits — small changes compound over time.', 'Great job — your lifestyle choices are having positive impact.');
+};
+
+const rulePublicTransit = (typeMap) => {
+  const bus = typeMap.get('Bus');
+  const train = typeMap.get('Train');
+  if (!((bus && bus.pct >= 35) || (train && train.pct >= 35))) return null;
+  return rec('Great use of public transit', 'A high share of your travel is by bus or train.', 'Low', 0, 'Keep using public transit and consider season passes or active travel for short trips.', 'Nice — public transit reduces per-person emissions significantly.');
+};
+
+const ruleHighCar = (typeMap, monthlyTotal) => {
+  const car = typeMap.get('Car');
+  if (!car) return null;
+  const isHigh = car.value >= 100 || (car.pct >= 30 && monthlyTotal >= 50);
+  if (!isHigh) return null;
+  return rec('High car travel detected', `Car travel accounts for ${car.pct}% of your emissions (${car.value} kg).`, 'High', clamp(car.value * 0.25), 'Try carpooling, combine errands, work remotely when possible, or switch short trips to walking/biking.');
+};
+
+const ruleHighFlights = (typeMap, monthlyTotal) => {
+  const flight = typeMap.get('Flight');
+  if (!flight) return null;
+  const isHigh = flight.value >= 200 || (flight.pct >= 20 && monthlyTotal >= 100);
+  if (!isHigh) return null;
+  return rec('Frequent flights detected', `Flights contribute ${flight.pct}% of emissions (${flight.value} kg).`, 'High', clamp(flight.value * 0.4), 'Consider fewer short-haul flights, choose rail where feasible, and combine trips to reduce frequency.');
+};
+
+const ruleHighElectricity = (typeMap, monthlyTotal) => {
+  const elec = typeMap.get('Electricity');
+  if (!elec) return null;
+  const isHigh = elec.value >= 150 || (elec.pct >= 25 && monthlyTotal >= 50);
+  if (!isHigh) return null;
+  return rec('High electricity usage', `Electricity accounts for ${elec.pct}% of your emissions (${elec.value} kg).`, 'Medium', clamp(elec.value * 0.2), 'Switch to LED lighting, optimize heating/cooling, and unplug idle devices to save energy.');
+};
+
+const ruleHighFood = (typeMap, monthlyTotal) => {
+  const food = typeMap.get('Food');
+  if (!food) return null;
+  const isHigh = food.value >= 100 || (food.pct >= 20 && monthlyTotal >= 50);
+  if (!isHigh) return null;
+  return rec('High food-related emissions', `Food accounts for ${food.pct}% of emissions (${food.value} kg).`, 'Medium', clamp(food.value * 0.15), 'Try reducing meat consumption, choose local seasonal produce, and reduce food waste.');
+};
+
+const ruleHighWaste = (typeMap, monthlyTotal) => {
+  const waste = typeMap.get('Waste');
+  if (!waste) return null;
+  const isHigh = waste.value >= 50 || (waste.pct >= 15 && monthlyTotal >= 50);
+  if (!isHigh) return null;
+  return rec('High waste generation', `Waste contributes ${waste.pct}% of emissions (${waste.value} kg).`, 'Medium', clamp(waste.value * 0.2), 'Increase recycling, compost organic waste, and choose products with less packaging.');
+};
+
+const ruleFallback = () => rec('Looking good', 'No major emission hotspots detected in your recent activity.', 'Low', 0, 'Keep tracking activities — small improvements can make a big difference over time.', 'Nice work — continue your sustainable habits.');
+
+const sortRecs = (list) => list.sort((a, b) => (priorityOrder[a.priority] - priorityOrder[b.priority]) || a.title.localeCompare(b.title));
+
+/**
+ * Generate prioritized CO₂ reduction recommendations based on activity data.
+ * Each rule returns null (no issue) or a recommendation object. Empty dataset
+ * gets a single "no data" rec. If no rule fires, a fallback encouragement is added.
+ * @param {Array} activities
+ * @returns {Array<{title:string, description:string, priority:string, estimatedSavingsKg:number, suggestion:string, encouragement:string|null}>}
+ */
+export const generateRecommendations = (activities) => {
+  const empty = ruleEmpty(activities);
+  if (empty) return sortRecs([empty]);
+
+  const breakdown = breakdownByCategory(activities);
+  const monthlyTotal = aggregate(activities).totals.monthly || 0;
+  const typeMap = typeMapFromBreakdown(breakdown);
+
+  const recs = [
+    ruleLowEmissions(monthlyTotal),
+    rulePublicTransit(typeMap),
+    ruleHighCar(typeMap, monthlyTotal),
+    ruleHighFlights(typeMap, monthlyTotal),
+    ruleHighElectricity(typeMap, monthlyTotal),
+    ruleHighFood(typeMap, monthlyTotal),
+    ruleHighWaste(typeMap, monthlyTotal)
+  ].filter(Boolean);
+
+  if (recs.length === 0) recs.push(ruleFallback());
+
+  return sortRecs(recs);
+};
+
+

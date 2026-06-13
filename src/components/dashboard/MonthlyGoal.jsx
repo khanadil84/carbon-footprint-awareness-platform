@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { GoalService } from '../../utils/goalService';
 import { STORAGE_KEYS } from '../../config/securityConfig.js';
 import { sanitizeNumber } from '../../utils/validation';
-import { activityService } from '../../utils/activityService';
+import { ActivityService } from '../../utils/activityService';
 import { Button } from '../ui/Button';
 
 export const MonthlyGoal = () => {
@@ -11,11 +11,11 @@ export const MonthlyGoal = () => {
   const [editing, setEditing] = useState(false);
   const [input, setInput] = useState(goal ? goal.targetKg : '');
 
-  const refresh = () => {
-    const activities = activityService.loadActivities();
+  const refresh = useCallback(() => {
+    const activities = ActivityService.loadActivities();
     const p = GoalService.computeProgress(activities, goal);
     setProgress(p);
-  };
+  }, [goal]);
 
   useEffect(() => {
     refresh();
@@ -27,7 +27,7 @@ export const MonthlyGoal = () => {
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, [goal]);
+  }, [refresh]);
 
   const handleSave = () => {
     const val = sanitizeNumber(input, null);

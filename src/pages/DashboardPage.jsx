@@ -1,52 +1,58 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, LayoutDashboard } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { Button } from '../components/ui/Button';
 import { StatCard } from '../components/dashboard/StatCard';
 import { WelcomeSection } from '../components/dashboard/WelcomeSection';
-import { RecentActivity } from '../components/dashboard/RecentActivity';
-import ActivityHistory from '../components/dashboard/ActivityHistory';
+// RecentActivity import removed (not used in this view)
 import { MostRecentActivity } from '../components/dashboard/MostRecentActivity';
-import { AnalyticsSection } from '../components/dashboard/AnalyticsSection';
-import { AIRecommendations } from '../components/dashboard/AIRecommendations';
-import { Badges } from '../components/dashboard/Badges';
-import { ExportControls } from '../components/dashboard/ExportControls';
-import PrintableReport from '../components/dashboard/PrintableReport';
-import { MonthlyGoal } from '../components/dashboard/MonthlyGoal';
-import SettingsPanel from '../components/layout/SettingsPanel';
-import './../components/dashboard/dashboard.css';
-import { activityService } from '../utils/activityService';
+
+// Lazy-load heavier dashboard widgets to improve initial rendering performance
+const ActivityHistory = lazy(() => import('../components/dashboard/ActivityHistory'));
+const AnalyticsSection = lazy(() => import('../components/dashboard/AnalyticsSection'));
+const AIRecommendations = lazy(() => import('../components/dashboard/AIRecommendations'));
+const Badges = lazy(() => import('../components/dashboard/Badges'));
+const ExportControls = lazy(() => import('../components/dashboard/ExportControls'));
+const PrintableReport = lazy(() => import('../components/dashboard/PrintableReport'));
+const MonthlyGoal = lazy(() => import('../components/dashboard/MonthlyGoal'));
+const SettingsPanel = lazy(() => import('../components/layout/SettingsPanel'));
+import '../components/dashboard/dashboard.css';
+import { ActivityService } from '../utils/activityService';
+import { aggregate } from '../utils/activityAnalytics';
 import { calculateCarbonScore } from '../utils/carbonScoreService';
 import { SettingsService } from '../utils/settingsService';
 import { STORAGE_KEYS } from '../config/securityConfig.js';
 
 export const DashboardPage = () => {
+
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
-
-  if (!user) return null;
 
   const [activities, setActivities] = useState([]);
   const [totals, setTotals] = useState({ today: 0, weekly: 0, monthly: 0, total: 0 });
   const [score, setScore] = useState(0);
   const [carbonMeta, setCarbonMeta] = useState({});
 
-  const refreshAll = (list) => {
-    const l = list || activityService.loadActivities();
+  const handleLogout = useCallback(() => {
+    logout();
+    navigate('/');
+  }, [logout, navigate]);
+
+  /**
+   * Refresh in-memory activity lists and derived metrics.
+   * Accepts an optional pre-loaded list to avoid double-loading.
+   * @param {Array} [list]
+   */
+  const refreshAll = useCallback((list) => {
+    const l = list || ActivityService.loadActivities();
     setActivities(l);
-    const agg = activityService.aggregate(l);
+    const agg = aggregate(l);
     setTotals(agg.totals);
     const cs = calculateCarbonScore(l);
     setScore(cs.score);
     setCarbonMeta(cs);
-  };
-
+  }, []);
   const settings = useMemo(() => SettingsService.loadSettings(), []);
 
   useEffect(() => {
@@ -72,15 +78,17 @@ export const DashboardPage = () => {
       // fail silently — settings are optional
       console.warn('Failed to apply default view', e);
     }
-  }, []);
+  }, [refreshAll, settings]);
 
   useEffect(() => {
     const onStorage = (e) => {
-      if (e.key === STORAGE_KEYS.ACTIVITIES) refreshAll(activityService.loadActivities());
+      if (e.key === STORAGE_KEYS.ACTIVITIES) refreshAll(ActivityService.loadActivities());
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, []);
+  }, [refreshAll]);
+
+  if (!user) return null;
 
   return (
     <div>
@@ -117,7 +125,9 @@ export const DashboardPage = () => {
 
         <div style={{ height: 'var(--spacing-6)' }} />
 
-        <AnalyticsSection activitiesProp={activities} preferredRange={settings.analyticsRange} />
+        <Suspense fallback={<div aria-hidden>Loading analytics…</div>}>
+          <AnalyticsSection activitiesProp={activities} preferredRange={settings.analyticsRange} />
+        </Suspense>
 
         <div style={{ height: 'var(--spacing-6)' }} />
 
@@ -134,15 +144,23 @@ export const DashboardPage = () => {
 
           <aside aria-labelledby="right-column-heading">
             <h2 id="right-column-heading" className="sr-only">Secondary</h2>
-            <ExportControls />
-            <Badges />
+            <Suspense fallback={<div aria-hidden>Loading tools…</div>}>
+              <ExportControls />
+              <Badges />
+            </Suspense>
             <div style={{ height: 'var(--spacing-2)' }} />
-            <AIRecommendations />
-            <PrintableReport />
+            <Suspense fallback={<div aria-hidden>Loading recommendations…</div>}>
+              <AIRecommendations />
+              <PrintableReport />
+            </Suspense>
             <div style={{ height: 'var(--spacing-4)' }} />
-            <SettingsPanel />
+            <Suspense fallback={<div aria-hidden>Loading settings…</div>}>
+              <SettingsPanel />
+            </Suspense>
             <div style={{ height: 'var(--spacing-4)' }} />
-            <MonthlyGoal />
+            <Suspense fallback={<div aria-hidden>Loading goals…</div>}>
+              <MonthlyGoal />
+            </Suspense>
           </aside>
         </div>
       </main>

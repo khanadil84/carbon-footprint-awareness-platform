@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { activityService } from '../../utils/activityService';
+import { memo, useEffect, useState } from 'react';
+import { ActivityService } from '../../utils/activityService';
 import { generateRecommendations } from '../../utils/recommendationService';
 import { STORAGE_KEYS } from '../../config/securityConfig.js';
 
@@ -7,7 +7,7 @@ export const AIRecommendations = () => {
   const [recs, setRecs] = useState([]);
 
   const refresh = () => {
-    const activities = activityService.loadActivities();
+    const activities = ActivityService.loadActivities();
     const list = generateRecommendations(activities);
     setRecs(list);
   };
@@ -52,4 +52,4 @@ export const AIRecommendations = () => {
   );
 };
 
-export default React.memo(AIRecommendations);
+export default memo(AIRecommendations);

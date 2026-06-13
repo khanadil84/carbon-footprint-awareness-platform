@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { ExportService } from '../../utils/exportService';
-import { activityService } from '../../utils/activityService';
+import { ActivityService } from '../../utils/activityService';
 import { STORAGE_KEYS } from '../../config/securityConfig.js';
-import '../../components/dashboard/print.css';
+import './print.css';
 
 export const PrintableReport = () => {
   const [report, setReport] = useState(null);
 
   const refresh = () => {
-    const activities = activityService.loadActivities();
+    const activities = ActivityService.loadActivities();
     const data = ExportService.makeReportData(activities);
     setReport(data);
   };
@@ -86,4 +86,4 @@ export const PrintableReport = () => {
   );
 };
 
-export default React.memo(PrintableReport);
+export default memo(PrintableReport);

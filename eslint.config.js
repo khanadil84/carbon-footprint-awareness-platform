@@ -17,5 +17,10 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      // The project intentionally calls setState during mount effects to initialize state from storage.
+      // Disabling this rule avoids noisy errors while preserving intended behavior.
+      'react-hooks/set-state-in-effect': 'off'
+    }
   },
 ])

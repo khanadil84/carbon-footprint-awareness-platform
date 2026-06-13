@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User } from 'lucide-react';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import { validateEmail, validatePassword, checkPasswordStrength, sanitizeString, normalizeName } from '../../utils/validation';
 
 export const SignUpPage = () => {
@@ -25,46 +25,35 @@ export const SignUpPage = () => {
     }
   };
 
+  const validateForm = (data, strength) => {
+    const errors = { name: '', email: '', password: '', submit: '' };
+    let hasError = false;
+
+    const name = sanitizeString(data.name);
+    if (!name) { errors.name = 'Full name is required'; hasError = true; }
+
+    const email = sanitizeString(data.email);
+    const emailError = validateEmail(email);
+    if (emailError) { errors.email = emailError; hasError = true; }
+
+    const passwordError = validatePassword(data.password);
+    if (passwordError) { errors.password = passwordError; hasError = true; }
+    else if (strength.score < 4) { errors.password = 'Password must meet all complexity requirements'; hasError = true; }
+
+    return { name: normalizeName(name), email, errors, hasError };
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validate
-    let hasError = false;
-    const newErrors = { name: '', email: '', password: '', submit: '' };
 
-    const name = sanitizeString(formData.name);
-    if (!name) {
-      newErrors.name = 'Full name is required';
-      hasError = true;
-    }
-
-    const email = sanitizeString(formData.email);
-    const emailError = validateEmail(email);
-    if (emailError) {
-      newErrors.email = emailError;
-      hasError = true;
-    }
-
-    const passwordError = validatePassword(formData.password);
-    if (passwordError) {
-      newErrors.password = passwordError;
-      hasError = true;
-    } else if (passwordStrength.score < 4) {
-      // Must meet all criteria
-      newErrors.password = 'Password must meet all complexity requirements';
-      hasError = true;
-    }
-
-    if (hasError) {
-      setErrors(newErrors);
-      return;
-    }
+    const { name, email, errors, hasError } = validateForm(formData, passwordStrength);
+    if (hasError) { setErrors(errors); return; }
 
     setIsSubmitting(true);
     setErrors({ name: '', email: '', password: '', submit: '' });
 
     try {
-      await register(normalizeName(name), email, formData.password);
+      await register(name, email, formData.password);
       navigate('/dashboard');
     } catch (err) {
       setErrors(prev => ({ ...prev, submit: err.message || 'Failed to create account' }));

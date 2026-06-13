@@ -1,5 +1,3 @@
-import React from 'react';
-
 export const ActivityFilters = ({ filters, onChange, types }) => {
   const handle = (k, v) => onChange({ ...filters, [k]: v });
 

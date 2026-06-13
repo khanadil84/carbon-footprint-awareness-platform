@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { ActivityForm } from './ActivityForm';
-import { activityService } from '../../utils/activityService';
+import { ActivityService } from '../../utils/activityService';
 import { Button } from '../ui/Button';
 
 export const RecentActivity = () => {
   const [activities, setActivities] = useState([]);
 
   useEffect(() => {
-    setActivities(activityService.loadActivities());
+    setActivities(ActivityService.loadActivities());
   }, []);
 
   const handleAdd = (activity) => {
@@ -15,7 +15,7 @@ export const RecentActivity = () => {
   };
 
   const handleDelete = (id) => {
-    const next = activityService.removeActivity(id);
+    const next = ActivityService.removeActivity(id);
     setActivities(next);
   };
 
@@ -62,4 +62,4 @@ export const RecentActivity = () => {
   );
 };
 
-export default React.memo(RecentActivity);
+export default memo(RecentActivity);

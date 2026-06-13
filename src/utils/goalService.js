@@ -1,97 +1,62 @@
-import { activityService } from './activityService.js';
-import { breakdownByCategory } from './activityAnalytics';
-import { safeGetItem, safeSetItem, safeParseJSON, safeRemoveItem } from './storage.js';
+import { aggregate, breakdownByCategory } from './activityAnalytics.js';
+import { safeGetJSON, safeSetJSON, safeRemoveItem } from './storage.js';
 import { sanitizeNumber } from './validation.js';
 import { STORAGE_KEYS } from '../config/securityConfig.js';
+import { daysInMonth } from '../domain/dateUtils.js';
+import { computeStatus, generateInsight } from '../domain/goalProgress.js';
+import { clamp } from '../domain/mathUtils.js';
+import { typeMapFromBreakdown } from '../domain/breakdownUtils.js';
 
 const STORAGE_KEY = STORAGE_KEYS.GOAL;
 
-export const loadGoal = () => {
-  try {
-    const raw = safeGetItem(STORAGE_KEY);
-    return safeParseJSON(raw, null);
-  } catch (e) {
-    console.error('Failed to load goal', e);
-    return null;
-  }
-};
+export const loadGoal = () => safeGetJSON(STORAGE_KEY, null);
 
 export const saveGoal = (goal) => {
-  try {
-    const toSave = {
-      ...goal,
-      targetKg: sanitizeNumber(goal && goal.targetKg, null)
-    };
-    safeSetItem(STORAGE_KEY, JSON.stringify(toSave));
-    return true;
-  } catch (e) {
-    console.error('Failed to save goal', e);
-    return false;
-  }
+  const toSave = {
+    ...goal,
+    targetKg: sanitizeNumber(goal && goal.targetKg, null)
+  };
+  safeSetJSON(STORAGE_KEY, toSave);
+  return true;
 };
 
 export const clearGoal = () => {
-  try {
-    safeRemoveItem(STORAGE_KEY);
-  } catch (e) {
-    /* ignore */
-  }
+  safeRemoveItem(STORAGE_KEY);
 };
 
-const daysInMonth = (d = new Date()) => new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
-
+/**
+ * Calculate monthly goal progress: current vs target, projection, status, and insight.
+ * @param {Array} activities
+ * @param {{targetKg:number}|null} goal
+ * @returns {{target:number|null, current:number, remaining:number|null, percent:number, daysRemaining:number, status:string, projection:number, improvementNeeded:number|null, insight:string}}
+ */
 export const computeProgress = (activities, goal) => {
-  // activities: array, goal: { targetKg }
   const target = goal && goal.targetKg ? Number(goal.targetKg) : null;
-  const agg = activityService.aggregate(activities || []);
+  const agg = aggregate(activities || []);
   const current = agg.totals.monthly || 0;
+  const daysRemaining = daysInMonth(new Date()) - new Date().getDate();
 
   if (!target) {
-    return { target: null, current, remaining: null, percent: 0, daysRemaining: daysInMonth(new Date()) - new Date().getDate(), status: 'No Goal', projection: current, improvementNeeded: null, insight: 'Set a monthly CO₂ target to track progress.' };
+    return { target: null, current, remaining: null, percent: 0, daysRemaining, status: 'No Goal', projection: current, improvementNeeded: null, insight: 'Set a monthly CO₂ target to track progress.' };
   }
 
   const today = new Date();
   const elapsed = today.getDate();
   const totalDays = daysInMonth(today);
-  const daysRemaining = totalDays - elapsed;
-
   const projected = elapsed > 0 ? parseFloat((current / elapsed * totalDays).toFixed(3)) : current;
   const remaining = parseFloat((target - current).toFixed(3));
   const percent = clamp(((current / target) * 100), 0, 100);
-
-  // Determine status
-  let status = 'On Track';
-  if (current <= target && projected <= target) status = 'Goal Achieved';
-  else if (projected <= target) status = 'On Track';
-  else if (projected <= target * 1.05) status = 'Slightly Behind';
-  else status = 'Behind';
-
+  const status = computeStatus(current, target, projected);
   const improvementNeeded = Math.max(0, parseFloat((projected - target).toFixed(3)));
 
-  // Simple insight generation
   const breakdown = breakdownByCategory(activities || []);
-  const car = breakdown.list.find(l => l.type === 'Car') || { value: 0 };
+  const typeMap = typeMapFromBreakdown(breakdown);
+  const car = typeMap.get('Car') || { value: 0 };
   const estIfReduceCar10 = parseFloat((car.value * 0.10).toFixed(3));
-  let insight = '';
-  if (status === 'On Track') insight = "You're on track to beat your goal.";
-  else if (improvementNeeded > 0 && estIfReduceCar10 >= improvementNeeded) insight = `Reducing car travel by 10% (~${estIfReduceCar10} kg) would keep you on target.`;
-  else if (status === 'Slightly Behind') insight = 'You are slightly behind — small adjustments would help.';
-  else if (status === 'Behind') insight = 'You are behind your monthly goal — consider larger changes.';
+  const insight = generateInsight(status, improvementNeeded, estIfReduceCar10);
 
-  return {
-    target,
-    current,
-    remaining: parseFloat((target - current).toFixed(3)),
-    percent: Math.round(percent),
-    daysRemaining,
-    status,
-    projection: projected,
-    improvementNeeded,
-    insight
-  };
+  return { target, current, remaining, percent: Math.round(percent), daysRemaining, status, projection: projected, improvementNeeded, insight };
 };
-
-const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, Number(v) || 0));
 
 export const GoalService = {
   loadGoal,
@@ -100,4 +65,4 @@ export const GoalService = {
   computeProgress
 };
 
-export default GoalService;
+

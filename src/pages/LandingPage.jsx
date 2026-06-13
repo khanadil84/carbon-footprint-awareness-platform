@@ -1,4 +1,4 @@
-import React from 'react';
+// React import not required with the new JSX transform
 import { Navbar } from '../components/layout/Navbar';
 import { Footer } from '../components/layout/Footer';
 import { HeroSection } from '../components/sections/HeroSection';

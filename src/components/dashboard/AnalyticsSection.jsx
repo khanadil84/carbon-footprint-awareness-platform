@@ -1,12 +1,12 @@
-import React, { useMemo } from 'react';
-import { aggregateByDay, aggregateByWeek, aggregateByMonth, breakdownByCategory, summaryStats } from '../../utils/activityAnalytics';
-import { activityService } from '../../utils/activityService';
+import { memo, useMemo } from 'react';
+import { aggregateByDay, aggregateByWeek, aggregateByMonth, breakdownByCategory, summaryStats } from '../../utils/activityAnalytics.js';
+import { ActivityService } from '../../utils/activityService';
 import { StatCard } from './StatCard';
 import { LineChart, SimpleBar } from '../ui/Chart';
 import './analytics.css';
 
 export const AnalyticsSection = ({ activitiesProp, preferredRange }) => {
-  const activities = activitiesProp || activityService.loadActivities();
+  const activities = activitiesProp || ActivityService.loadActivities();
 
   const daily = useMemo(() => aggregateByDay(activities, 30), [activities]);
   const weekly = useMemo(() => aggregateByWeek(activities, 12), [activities]);
@@ -18,8 +18,8 @@ export const AnalyticsSection = ({ activitiesProp, preferredRange }) => {
   const cards = useMemo(() => {
     const c = [
       { key: 'daily', title: 'Daily CO₂ (30d)', node: <LineChart data={daily} ariaLabel="Daily CO2 trend" /> },
-      { key: 'weekly', title: 'Weekly CO₂ (12w)', node: <LineChart data={weekly.map((d,i)=>({date:d.label,value:d.value}))} ariaLabel="Weekly CO2 trend" /> },
-      { key: 'monthly', title: 'Monthly CO₂ (12m)', node: <LineChart data={monthly.map((d,i)=>({date:d.label,value:d.value}))} ariaLabel="Monthly CO2 trend" /> }
+      { key: 'weekly', title: 'Weekly CO₂ (12w)', node: <LineChart data={weekly.map((d)=>({date:d.label,value:d.value}))} ariaLabel="Weekly CO2 trend" /> },
+      { key: 'monthly', title: 'Monthly CO₂ (12m)', node: <LineChart data={monthly.map((d)=>({date:d.label,value:d.value}))} ariaLabel="Monthly CO2 trend" /> }
     ];
 
     if (preferredRange === 'weekly') {
@@ -74,4 +74,4 @@ export const AnalyticsSection = ({ activitiesProp, preferredRange }) => {
   );
 };
 
-export default React.memo(AnalyticsSection);
+export default memo(AnalyticsSection);

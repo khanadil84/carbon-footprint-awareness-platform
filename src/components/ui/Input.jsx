@@ -1,4 +1,4 @@
-import React, { forwardRef, useState } from 'react';
+import { forwardRef, memo, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import './Input.css';
 
@@ -46,6 +46,7 @@ export const Input = forwardRef(({
             type="button"
             className="input-password-toggle"
             onClick={togglePassword}
+            onMouseDown={(e) => e.preventDefault()}
             aria-label={showPassword ? 'Hide password' : 'Show password'}
           >
             {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
@@ -62,3 +63,4 @@ export const Input = forwardRef(({
 });
 
 Input.displayName = 'Input';
+export default memo(Input);

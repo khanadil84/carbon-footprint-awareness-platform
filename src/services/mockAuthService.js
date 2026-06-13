@@ -28,7 +28,7 @@ export const authService = {
     };
   },
 
-  register: async (name, email, password) => {
+  register: async (name, email) => {
     await delay(1200);
     
     // Simulate checking if user exists

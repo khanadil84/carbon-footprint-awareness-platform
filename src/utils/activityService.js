@@ -1,65 +1,18 @@
-import { safeGetItem, safeSetItem, safeParseJSON } from './storage.js';
+import { safeGetJSON, safeSetJSON } from './storage.js';
 import { sanitizeNumber, validActivityType, sanitizeString } from './validation.js';
 import { STORAGE_KEYS } from '../config/securityConfig.js';
+import { calculateEmission } from '../domain/emissionCalculator.js';
 
 const STORAGE_KEY = STORAGE_KEYS.ACTIVITIES;
 
-const emissionFactors = {
-  car_km: 0.192, // kg CO2 per km
-  bus_km: 0.105,
-  train_km: 0.041,
-  flight_km: 0.255,
-  electricity_kwh: 0.475,
-  food_kg: 2.5, // kg CO2 per kg food (avg)
-  waste_kg: 0.5
-};
-
 const loadActivities = () => {
-  try {
-    const raw = safeGetItem(STORAGE_KEY);
-    const parsed = safeParseJSON(raw, []);
-    if (!Array.isArray(parsed)) return [];
-    return parsed;
-  } catch (e) {
-    console.error('Failed to load activities', e);
-    return [];
-  }
+  const parsed = safeGetJSON(STORAGE_KEY, []);
+  return Array.isArray(parsed) ? parsed : [];
 };
 
-const saveActivities = (list) => {
-  try {
-    safeSetItem(STORAGE_KEY, JSON.stringify(list || []));
-    return true;
-  } catch (e) {
-    console.error('Failed to save activities', e);
-    return false;
-  }
-};
-
-const calculateEmission = (type, value) => {
-  const v = Number(value) || 0;
-  switch (type) {
-    case 'Car':
-      return parseFloat((v * emissionFactors.car_km).toFixed(3));
-    case 'Bus':
-      return parseFloat((v * emissionFactors.bus_km).toFixed(3));
-    case 'Train':
-      return parseFloat((v * emissionFactors.train_km).toFixed(3));
-    case 'Flight':
-      return parseFloat((v * emissionFactors.flight_km).toFixed(3));
-    case 'Electricity':
-      return parseFloat((v * emissionFactors.electricity_kwh).toFixed(3));
-    case 'Food':
-      return parseFloat((v * emissionFactors.food_kg).toFixed(3));
-    case 'Waste':
-      return parseFloat((v * emissionFactors.waste_kg).toFixed(3));
-    default:
-      return 0;
-  }
-};
+const saveActivities = (list) => safeSetJSON(STORAGE_KEY, list || []);
 
 const addActivity = ({ type, value, date = new Date().toISOString() }) => {
-  // sanitize inputs
   const t = sanitizeString(type);
   if (!validActivityType(t)) throw new Error('Invalid activity type');
   const v = sanitizeNumber(value, null);
@@ -91,43 +44,12 @@ const clearActivities = () => {
   saveActivities([]);
 };
 
-const aggregate = (activities) => {
-  const now = new Date();
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const dayMs = 24 * 60 * 60 * 1000;
-
-  const today = activities.filter(a => new Date(a.date) >= startOfDay);
-  const weekly = activities.filter(a => new Date(a.date) >= new Date(now - 7 * dayMs));
-  const monthly = activities.filter(a => new Date(a.date) >= new Date(now - 30 * dayMs));
-
-  const sum = (arr) => arr.reduce((s, it) => s + (Number(it.co2) || 0), 0);
-
-  const totals = {
-    today: parseFloat(sum(today).toFixed(3)),
-    weekly: parseFloat(sum(weekly).toFixed(3)),
-    monthly: parseFloat(sum(monthly).toFixed(3)),
-    total: parseFloat(sum(activities).toFixed(3))
-  };
-
-  // Carbon score: simple heuristic: 100 if monthly <= 50kg, 0 if monthly >=1000kg
-  const score = (() => {
-    const m = totals.monthly;
-    if (m <= 50) return 100;
-    if (m >= 1000) return 0;
-    return Math.round(100 - ((m - 50) / (1000 - 50)) * 100);
-  })();
-
-  return { totals, score };
-};
-
-export const activityService = {
+export const ActivityService = {
   loadActivities,
   addActivity,
   removeActivity,
   clearActivities,
-  calculateEmission,
-  aggregate,
-  emissionFactors
+  calculateEmission
 };
 
-export default activityService;
+

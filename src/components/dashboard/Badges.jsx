@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { AchievementService } from '../../utils/achievementService';
-import { activityService } from '../../utils/activityService';
+import { ActivityService } from '../../utils/activityService';
 import { GoalService } from '../../utils/goalService';
 import { STORAGE_KEYS } from '../../config/securityConfig.js';
 
@@ -8,7 +8,7 @@ export const Badges = () => {
   const [data, setData] = useState({ achievements: [], recent: null });
 
   const refresh = () => {
-    const activities = activityService.loadActivities();
+    const activities = ActivityService.loadActivities();
     const goal = GoalService.loadGoal();
     const res = AchievementService.evaluateAchievements(activities, goal);
     setData(res);
@@ -75,4 +75,4 @@ export const Badges = () => {
   );
 };
 
-export default React.memo(Badges);
+export default memo(Badges);

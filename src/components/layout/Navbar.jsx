@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import { memo, useState } from 'react';
 import { Leaf, Menu, X } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useNavigate } from 'react-router-dom';
 import './Navbar.css';
 
-export const Navbar = React.memo(() => {
+export const Navbar = memo(() => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
 

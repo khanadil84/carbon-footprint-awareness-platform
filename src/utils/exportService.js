@@ -1,19 +1,9 @@
-import { activityService } from './activityService.js';
-import { calculateCarbonScore } from './carbonScoreService';
-import { GoalService } from './goalService';
-import { AchievementService } from './achievementService';
-import { generateRecommendations } from './recommendationService';
-import { breakdownByCategory } from './activityAnalytics';
-
-const categoryOf = (type) => {
-  const travel = ['Car','Bus','Train','Flight'];
-  const home = ['Electricity','Waste'];
-  const food = ['Food'];
-  if (travel.includes(type)) return 'Travel';
-  if (home.includes(type)) return 'Home';
-  if (food.includes(type)) return 'Food';
-  return 'Other';
-};
+import { aggregate, breakdownByCategory } from './activityAnalytics.js';
+import { calculateCarbonScore } from './carbonScoreService.js';
+import { GoalService } from './goalService.js';
+import { AchievementService } from './achievementService.js';
+import { generateRecommendations } from './recommendationService.js';
+import { getCategoryForType } from '../config/constants.js';
 
 const escapeCell = (v) => {
   if (v === null || v === undefined) return '';
@@ -24,17 +14,8 @@ const escapeCell = (v) => {
   return s;
 };
 
-const buildCSV = (rows, headers) => {
-  const lines = [];
-  if (headers && headers.length) lines.push(headers.map(escapeCell).join(','));
-  rows.forEach(r => {
-    lines.push(headers.map(h => escapeCell(r[h] ?? r[h.toLowerCase()] ?? '')) .join(','));
-  });
-  return lines.join('\n');
-};
-
 const downloadCSV = (filename, csvContent) => {
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -52,21 +33,32 @@ const exportActivitiesCSV = (activities) => {
     'Activity Type': a.type,
     'Input Value': a.value,
     'Estimated CO2': a.co2,
-    Category: categoryOf(a.type)
+    Category: getCategoryForType(a.type)
   }));
   const csv = [headers.join(',')].concat(rows.map(r => headers.map(h => escapeCell(r[h])).join(','))).join('\n');
   downloadCSV(`ecotrack_activities_${new Date().toISOString().slice(0,10)}.csv`, csv);
 };
 
-const exportDashboardCSV = (activities) => {
-  const agg = activityService.aggregate(activities || []);
-  const totals = agg.totals || {};
-  const scoreObj = calculateCarbonScore(activities || []);
+const buildReportData = (activities) => {
+  const agg = aggregate(activities || []);
   const goal = GoalService.loadGoal();
-  const progress = GoalService.computeProgress(activities || [], goal);
-  const breakdown = breakdownByCategory(activities || []);
-  const achievements = AchievementService.evaluateAchievements(activities || [], goal).achievements || [];
-  const recs = generateRecommendations(activities || []);
+  return {
+    totals: agg.totals || {},
+    scoreObj: calculateCarbonScore(activities || []),
+    goal,
+    progress: GoalService.computeProgress(activities || [], goal),
+    breakdown: breakdownByCategory(activities || []),
+    achievements: AchievementService.evaluateAchievements(activities || [], goal).achievements || [],
+    recs: generateRecommendations(activities || [])
+  };
+};
+
+/**
+ * Build a summary CSV of dashboard metrics and download it.
+ * @param {Array} activities
+ */
+const exportDashboardCSV = (activities) => {
+  const { totals, scoreObj, goal, progress, breakdown, achievements, recs } = buildReportData(activities);
 
   const summary = {
     'Carbon Score': scoreObj.score,
@@ -90,16 +82,13 @@ const exportDashboardCSV = (activities) => {
   downloadCSV(`ecotrack_dashboard_summary_${new Date().toISOString().slice(0,10)}.csv`, csv);
 };
 
+/**
+ * Build a printable report data object containing all dashboard metrics.
+ * @param {Array} activities
+ * @returns {{generatedAt:string, totals, scoreObj, goal, progress, breakdown, achievements, recommendations, recentActivities}}
+ */
 const makeReportData = (activities) => {
-  const agg = activityService.aggregate(activities || []);
-  const totals = agg.totals || {};
-  const scoreObj = calculateCarbonScore(activities || []);
-  const goal = GoalService.loadGoal();
-  const progress = GoalService.computeProgress(activities || [], goal);
-  const breakdown = breakdownByCategory(activities || []);
-  const achievements = AchievementService.evaluateAchievements(activities || [], goal).achievements || [];
-  const recs = generateRecommendations(activities || []);
-
+  const { totals, scoreObj, goal, progress, breakdown, achievements, recs } = buildReportData(activities);
   return {
     generatedAt: new Date().toISOString(),
     totals,
@@ -120,4 +109,4 @@ export const ExportService = {
   downloadCSV
 };
 
-export default ExportService;
+

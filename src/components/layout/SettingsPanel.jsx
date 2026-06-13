@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { SettingsService } from '../../utils/settingsService';
 import { STORAGE_KEYS } from '../../config/securityConfig.js';
-import '../../components/dashboard/dashboard.css';
-import '../../components/dashboard/print.css';
+import '../dashboard/dashboard.css';
+import '../dashboard/print.css';
 import './settings.css';
 
 export const SettingsPanel = () => {
@@ -109,4 +109,4 @@ export const SettingsPanel = () => {
   );
 };
 
-export default React.memo(SettingsPanel);
+export default memo(SettingsPanel);

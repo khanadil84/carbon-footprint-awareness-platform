@@ -142,6 +142,16 @@ Frontend-focused security enhancements include:
 
 > **Note:** Backend security features such as JWT authentication, password hashing, SQL injection prevention, CSRF protection, and rate limiting require a server-side implementation and are outside the scope of this frontend-only project.
 
+### Security Headers
+
+For production deployments we recommend configuring HTTP response headers (on your CDN or server) instead of relying solely on meta tags. Recommended headers:
+
+- `Content-Security-Policy` (strict, tailored to your deployment)
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `X-Content-Type-Options: nosniff`
+- `Strict-Transport-Security` when serving over HTTPS
+
+Refer to the project's `index.html` for a conservative meta-level CSP used for development previews.
 ---
 
 # ⚡ Performance Optimizations

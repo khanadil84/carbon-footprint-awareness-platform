@@ -1,4 +1,4 @@
-import React from 'react';
+// React import not required with the new JSX transform
 import { Link } from 'react-router-dom';
 import { Leaf } from 'lucide-react';
 import './AuthLayout.css';

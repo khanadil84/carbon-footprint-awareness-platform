@@ -1,9 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { authService } from '../services/mockAuthService';
 import { safeGetItem, safeSetItem, safeRemoveItem, safeParseJSON } from '../utils/storage.js';
 import { STORAGE_KEYS, SESSION_TIMEOUT_MINUTES } from '../config/securityConfig.js';
-
-const AuthContext = createContext(null);
+import { AuthContext } from './authContextImpl';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -27,7 +26,6 @@ export const AuthProvider = ({ children }) => {
 
   // Session timeout handling: logout after inactivity
   const timeoutRef = useRef(null);
-  const activityEvents = ['mousemove','keydown','click','touchstart'];
 
   useEffect(() => {
     const logoutAfterTimeout = () => {
@@ -47,6 +45,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     // Start timer only when user is authenticated
+    const activityEvents = ['mousemove','keydown','click','touchstart'];
     if (user) {
       activityEvents.forEach(ev => window.addEventListener(ev, resetTimer));
       resetTimer();
@@ -90,10 +89,4 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+// `useAuth` moved to `src/context/useAuth.js` to keep this file exporting only components.

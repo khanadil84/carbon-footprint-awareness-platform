@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { Fragment, memo, useEffect, useState, useCallback } from 'react';
 import { ActivityForm } from './ActivityForm';
-import { activityService } from '../../utils/activityService';
+import { ActivityService } from '../../utils/activityService';
 import { HistoryService } from '../../utils/historyService';
 import ActivityFilters from './ActivityFilters';
 import { Button } from '../ui/Button';
 import { STORAGE_KEYS } from '../../config/securityConfig.js';
+import { ACTIVITY_TYPES } from '../../config/constants.js';
 
 export const ActivityHistory = () => {
   const [filters, setFilters] = useState({});
@@ -13,47 +14,48 @@ export const ActivityHistory = () => {
   const [result, setResult] = useState({ data: [], page:1, pages:1, total:0, stats: {} });
   const [expanded, setExpanded] = useState(null);
 
-  const types = useMemo(() => ['Car','Bus','Train','Flight','Electricity','Food','Waste'], []);
-
-  const runQuery = useCallback((f = filters, p = page) => {
-    const q = HistoryService.queryActivities({ ...f, page: p, pageSize });
+  /**
+   * Run a query against HistoryService using optional overrides.
+   * @param {object} [f] optional filters
+   * @param {number} [p] optional page number
+   */
+  const runQuery = useCallback((f, p) => {
+    const _f = f ?? filters;
+    const _p = p ?? page;
+    const q = HistoryService.queryActivities({ ..._f, page: _p, pageSize });
     setResult(q);
   }, [filters, page, pageSize]);
 
   useEffect(() => {
-    runQuery();
-  }, []);
+    runQuery(filters, page);
+  }, [runQuery, filters, page]);
 
   useEffect(() => {
     runQuery(filters, 1);
     setPage(1);
-  }, [filters]);
+  }, [filters, runQuery]);
 
   useEffect(() => {
-    runQuery(filters, page);
-  }, [page]);
-
-  useEffect(() => {
-    const onStorage = (e) => { if ([STORAGE_KEYS.ACTIVITIES].includes(e.key)) runQuery(); };
+    const onStorage = (e) => { if (e.key === STORAGE_KEYS.ACTIVITIES) runQuery(filters, page); };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, [runQuery]);
+  }, [runQuery, filters, page]);
 
-  const handleAdd = (activity) => {
+  const handleAdd = () => {
     runQuery({ ...filters }, 1);
     setPage(1);
   };
 
   const handleDelete = (id) => {
     if (!confirm('Delete this activity?')) return;
-    activityService.removeActivity(id);
+    ActivityService.removeActivity(id);
     runQuery(filters, 1);
     setPage(1);
   };
 
   const handleClearAll = () => {
     if (!confirm('Clear all activities? This cannot be undone.')) return;
-    activityService.clearActivities();
+    ActivityService.clearActivities();
     setFilters({});
     setPage(1);
     runQuery({},1);
@@ -69,7 +71,7 @@ export const ActivityHistory = () => {
       <div className="dfp-section__content">
         <ActivityForm onAdd={handleAdd} />
         <div style={{ height: '0.5rem' }} />
-        <ActivityFilters filters={filters} onChange={setFilters} types={types} />
+        <ActivityFilters filters={filters} onChange={setFilters} types={ACTIVITY_TYPES} />
 
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop: '0.75rem' }}>
           <div aria-live="polite" style={{ color: 'var(--text-secondary)' }}>
@@ -96,7 +98,7 @@ export const ActivityHistory = () => {
               </thead>
               <tbody>
                 {result.data.map(a => (
-                  <React.Fragment key={a.id}>
+                  <Fragment key={a.id}>
                     <tr style={{ borderTop: '1px solid #e5e7eb' }}>
                       <td style={{ padding: '8px' }}>{new Date(a.date).toLocaleString()}</td>
                       <td style={{ padding: '8px' }}>{a.type}</td>
@@ -120,7 +122,7 @@ export const ActivityHistory = () => {
                         </td>
                       </tr>
                     )}
-                  </React.Fragment>
+                  </Fragment>
                 ))}
               </tbody>
             </table>
@@ -142,4 +144,4 @@ export const ActivityHistory = () => {
   );
 };
 
-export default React.memo(ActivityHistory);
+export default memo(ActivityHistory);

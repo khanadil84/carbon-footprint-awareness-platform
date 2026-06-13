@@ -1,13 +1,13 @@
-import React, { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 
 const LineChartComponent = ({ data = [], color = 'var(--brand-primary)', ariaLabel }) => {
-  if (!data || data.length === 0) return <div className="chart-empty">No data</div>;
   const max = useMemo(() => Math.max(...data.map(d => d.value), 1), [data]);
   const points = useMemo(() => data.map((d, i) => {
     const x = (i / (data.length - 1)) * 100;
     const y = 100 - (d.value / max) * 100;
     return `${x},${y}`;
   }).join(' '), [data, max]);
+  if (!data || data.length === 0) return <div className="chart-empty">No data</div>;
   return (
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label={ariaLabel} className="ecochart-line">
       <polyline fill="none" stroke={color} strokeWidth="1.5" points={points} />
@@ -15,9 +15,9 @@ const LineChartComponent = ({ data = [], color = 'var(--brand-primary)', ariaLab
   );
 };
 
-export const LineChart = React.memo(LineChartComponent);
+export const LineChart = memo(LineChartComponent);
 
-export const SimpleBar = React.memo(({ pct = 0, color = 'var(--brand-primary)', label }) => (
+export const SimpleBar = memo(({ pct = 0, color = 'var(--brand-primary)', label }) => (
   <div className="bar-row">
     <div className="bar-label">{label}</div>
     <div className="bar-track" aria-hidden>
@@ -27,4 +27,4 @@ export const SimpleBar = React.memo(({ pct = 0, color = 'var(--brand-primary)', 
   </div>
 ));
 
-export default { LineChart, SimpleBar };
+

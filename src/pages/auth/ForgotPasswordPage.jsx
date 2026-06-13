@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, CheckCircle } from 'lucide-react';
 import { AuthLayout } from '../../components/layout/AuthLayout';
@@ -15,12 +15,9 @@ export const ForgotPasswordPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const emailError = validateEmail(email);
-    if (emailError) {
-      setError(emailError);
-      return;
-    }
+    if (emailError) { setError(emailError); return; }
 
     setIsSubmitting(true);
     setError('');

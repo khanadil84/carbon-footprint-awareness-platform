@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { activityService } from '../../utils/activityService';
+import { useEffect, useState } from 'react';
+import { ActivityService } from '../../utils/activityService';
 import { ExportService } from '../../utils/exportService';
 import { STORAGE_KEYS } from '../../config/securityConfig.js';
 
 export const ExportControls = () => {
   const [count, setCount] = useState(0);
 
-  const refresh = () => setCount(activityService.loadActivities().length);
+  const refresh = () => setCount(ActivityService.loadActivities().length);
 
   useEffect(() => {
     refresh();
@@ -16,12 +16,12 @@ export const ExportControls = () => {
   }, []);
 
   const handleExportActivities = () => {
-    const activities = activityService.loadActivities();
+    const activities = ActivityService.loadActivities();
     ExportService.exportActivitiesCSV(activities);
   };
 
   const handleExportSummary = () => {
-    const activities = activityService.loadActivities();
+    const activities = ActivityService.loadActivities();
     ExportService.exportDashboardCSV(activities);
   };
 

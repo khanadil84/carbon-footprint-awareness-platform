@@ -1,7 +1,7 @@
 // Centralized security-related configuration with sensible defaults.
 // Uses Vite's import.meta.env variables (VITE_*) when available.
 
-const env = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : process.env;
+const env = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : (typeof globalThis !== 'undefined' && globalThis.process && globalThis.process.env ? globalThis.process.env : {});
 
 const SESSION_TIMEOUT_MINUTES = Number(env.VITE_SESSION_TIMEOUT_MINUTES || env.REACT_APP_SESSION_TIMEOUT_MINUTES || 30);
 
@@ -15,8 +15,3 @@ const STORAGE_KEYS = {
 };
 
 export { SESSION_TIMEOUT_MINUTES, STORAGE_KEYS };
-
-export default {
-  SESSION_TIMEOUT_MINUTES,
-  STORAGE_KEYS
-};

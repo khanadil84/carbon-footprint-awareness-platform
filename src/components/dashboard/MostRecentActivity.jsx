@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { activityService } from '../../utils/activityService';
+import { useEffect, useState } from 'react';
+import { ActivityService } from '../../utils/activityService';
 
 export const MostRecentActivity = () => {
   const [recent, setRecent] = useState(null);
 
   useEffect(() => {
-    const list = activityService.loadActivities();
+    const list = ActivityService.loadActivities();
     if (list && list.length > 0) setRecent(list[0]);
   }, []);
 

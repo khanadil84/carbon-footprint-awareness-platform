@@ -1,4 +1,4 @@
-import React from 'react';
+// React import not required with the new JSX transform
 import { ArrowRight, Leaf } from 'lucide-react';
 import { Button } from '../ui/Button';
 import './HeroSection.css';

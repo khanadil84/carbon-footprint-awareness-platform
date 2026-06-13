@@ -1,17 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button } from '../ui/Button';
-import { activityService } from '../../utils/activityService';
+import { ActivityService } from '../../utils/activityService';
 import { sanitizeNumber, validActivityType } from '../../utils/validation';
-
-const activityOptions = [
-  { value: 'Car', label: 'Car Travel (km)', unit: 'km' },
-  { value: 'Bus', label: 'Bus Travel (km)', unit: 'km' },
-  { value: 'Train', label: 'Train Travel (km)', unit: 'km' },
-  { value: 'Flight', label: 'Flight Travel (km)', unit: 'km' },
-  { value: 'Electricity', label: 'Electricity Usage (kWh)', unit: 'kWh' },
-  { value: 'Food', label: 'Food Consumption (kg)', unit: 'kg' },
-  { value: 'Waste', label: 'Waste Generation (kg)', unit: 'kg' }
-];
+import { ACTIVITY_OPTIONS } from '../../config/constants.js';
 
 export const ActivityForm = ({ onAdd }) => {
   const [type, setType] = useState('Car');
@@ -20,33 +11,33 @@ export const ActivityForm = ({ onAdd }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const num = sanitizeNumber(value, null);
+    if (num === null || num <= 0) {
+      setError('Please enter a valid number greater than 0');
+      return;
+    }
+    if (!validActivityType(type)) {
+      setError('Please select a valid activity type');
+      return;
+    }
     try {
-      const num = sanitizeNumber(value, null);
-      if (num === null || num <= 0) {
-        setError('Please enter a valid number greater than 0');
-        return;
-      }
-      if (!validActivityType(type)) {
-        setError('Please select a valid activity type');
-        return;
-      }
-      const activity = activityService.addActivity({ type, value: num });
-    setValue('');
-    setError('');
-    if (onAdd) onAdd(activity);
+      const activity = ActivityService.addActivity({ type, value: num });
+      setValue('');
+      setError('');
+      if (onAdd) onAdd(activity);
     } catch (err) {
       setError(err.message || 'Failed to add activity');
     }
   };
 
-  const unit = activityOptions.find(o => o.value === type)?.unit || '';
+  const unit = ACTIVITY_OPTIONS.find(o => o.value === type)?.unit || '';
 
   return (
     <form onSubmit={handleSubmit} className="activity-form" aria-label="Add activity">
       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
         <label htmlFor="activity-type" style={{ display: 'none' }}>Activity type</label>
         <select id="activity-type" value={type} onChange={(e) => setType(e.target.value)} aria-label="Activity type">
-          {activityOptions.map(o => (
+          {ACTIVITY_OPTIONS.map(o => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>

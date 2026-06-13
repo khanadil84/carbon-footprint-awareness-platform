@@ -1,8 +1,9 @@
-import { safeGetItem, safeSetItem, safeParseJSON } from './storage.js';
+import { safeGetJSON, safeSetJSON } from './storage.js';
 import { STORAGE_KEYS } from '../config/securityConfig.js';
 
 const STORAGE_KEY = STORAGE_KEYS.SETTINGS;
 
+/** @returns {{units:string, defaultView:string, analyticsRange:string, notificationsEnabled:boolean, theme:string, saveMode:string}} */
 const defaultSettings = () => ({
   units: 'metric', // 'metric' (kg, km) or 'imperial' (lbs, miles)
   defaultView: 'overview', // 'overview' | 'analytics' | 'history'
@@ -23,47 +24,21 @@ const isValid = (obj) => {
 };
 
 const loadSettings = () => {
-  try {
-    const raw = safeGetItem(STORAGE_KEY);
-    const parsed = safeParseJSON(raw, null);
-    if (!parsed) return defaultSettings();
-    if (!isValid(parsed)) {
-      const base = defaultSettings();
-      const merged = { ...base, ...(parsed || {}) };
-      if (!isValid(merged)) return base;
-      return merged;
-    }
-    return parsed;
-  } catch (e) {
-    console.error('Failed to load settings, using defaults', e);
-    return defaultSettings();
-  }
+  const merged = { ...defaultSettings(), ...safeGetJSON(STORAGE_KEY, {}) };
+  return isValid(merged) ? merged : defaultSettings();
 };
 
 const saveSettings = (settings) => {
-  try {
-    const toSave = isValid(settings) ? settings : (() => {
-      const base = defaultSettings();
-      const merged = { ...base, ...(settings || {}) };
-      return isValid(merged) ? merged : base;
-    })();
-    safeSetItem(STORAGE_KEY, JSON.stringify(toSave));
-    return toSave;
-  } catch (e) {
-    console.error('Failed to save settings', e);
-    return null;
-  }
+  const merged = { ...defaultSettings(), ...(settings || {}) };
+  const toSave = isValid(merged) ? merged : defaultSettings();
+  safeSetJSON(STORAGE_KEY, toSave);
+  return toSave;
 };
 
 const resetSettings = () => {
-  try {
-    const defaults = defaultSettings();
-    safeSetItem(STORAGE_KEY, JSON.stringify(defaults));
-    return defaults;
-  } catch (e) {
-    console.error('Failed to reset settings', e);
-    return defaultSettings();
-  }
+  const defaults = defaultSettings();
+  safeSetJSON(STORAGE_KEY, defaults);
+  return defaults;
 };
 
 export const SettingsService = {
@@ -73,4 +48,4 @@ export const SettingsService = {
   resetSettings
 };
 
-export default SettingsService;
+

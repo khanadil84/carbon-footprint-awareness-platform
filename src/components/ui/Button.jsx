@@ -1,4 +1,4 @@
-import React from 'react';
+import { memo } from 'react';
 import './Button.css';
 
 export const Button = ({
@@ -6,6 +6,7 @@ export const Button = ({
   variant = 'primary',
   size = 'md',
   className = '',
+  disabled = false,
   ...props
 }) => {
   const baseClass = 'eco-button';
@@ -15,9 +16,13 @@ export const Button = ({
   return (
     <button
       className={`${baseClass} ${variantClass} ${sizeClass} ${className}`.trim()}
+      aria-disabled={disabled ? 'true' : 'false'}
+      disabled={disabled}
       {...props}
     >
       {children}
     </button>
   );
 };
+
+export default memo(Button);

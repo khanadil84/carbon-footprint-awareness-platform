@@ -3,7 +3,7 @@ import assert from 'assert';
 // Polyfill localStorage for Node test environment
 let _store = {};
 globalThis.localStorage = {
-  getItem: (k) => (_store.hasOwnProperty(k) ? _store[k] : null),
+  getItem: (k) => (Object.prototype.hasOwnProperty.call(_store, k) ? _store[k] : null),
   setItem: (k, v) => { _store[k] = String(v); },
   removeItem: (k) => { delete _store[k]; },
   clear: () => { _store = {}; }
@@ -11,35 +11,36 @@ globalThis.localStorage = {
 
 console.log('Running activityService tests...');
 
-import { activityService } from '../src/utils/activityService.js';
+import { ActivityService } from '../src/utils/activityService.js';
+import { aggregate } from '../src/utils/activityAnalytics.js';
 
 // Ensure clean state
-activityService.clearActivities();
-assert.deepStrictEqual(activityService.loadActivities(), [], 'Should start with empty activities');
+ActivityService.clearActivities();
+assert.deepStrictEqual(ActivityService.loadActivities(), [], 'Should start with empty activities');
 
 // Emission calculations
-assert.strictEqual(activityService.calculateEmission('Car', 10), 1.92);
-assert.strictEqual(activityService.calculateEmission('Bus', 50), parseFloat((50 * 0.105).toFixed(3)));
-assert.strictEqual(activityService.calculateEmission('Electricity', 100), parseFloat((100 * 0.475).toFixed(3)));
+assert.strictEqual(ActivityService.calculateEmission('Car', 10), 1.92);
+assert.strictEqual(ActivityService.calculateEmission('Bus', 50), parseFloat((50 * 0.105).toFixed(3)));
+assert.strictEqual(ActivityService.calculateEmission('Electricity', 100), parseFloat((100 * 0.475).toFixed(3)));
 
 // Add activity and persistence
-const a1 = activityService.addActivity({ type: 'Car', value: 10 });
-let list = activityService.loadActivities();
+const a1 = ActivityService.addActivity({ type: 'Car', value: 10 });
+let list = ActivityService.loadActivities();
 assert.strictEqual(list.length, 1, 'Should have one activity after add');
 assert.strictEqual(list[0].id, a1.id);
-assert.strictEqual(list[0].co2, activityService.calculateEmission('Car', 10));
+assert.strictEqual(list[0].co2, ActivityService.calculateEmission('Car', 10));
 
 // Add multiple activities, including an older one
-const a2 = activityService.addActivity({ type: 'Bus', value: 20 });
+const a2 = ActivityService.addActivity({ type: 'Bus', value: 20 });
 // older than 10 days
 const oldDate = new Date(Date.now() - 11 * 24 * 60 * 60 * 1000).toISOString();
-const a3 = activityService.addActivity({ type: 'Train', value: 100, date: oldDate });
+ActivityService.addActivity({ type: 'Train', value: 100, date: oldDate });
 
-list = activityService.loadActivities();
+list = ActivityService.loadActivities();
 assert.strictEqual(list.length, 3, 'Should have three activities');
 
 // Aggregate totals
-const agg = activityService.aggregate(list);
+const agg = aggregate(list);
 assert.ok(agg.totals.total >= 0, 'Total should be numeric');
 assert.strictEqual(agg.totals.total, parseFloat(list.reduce((s, it) => s + (Number(it.co2) || 0), 0).toFixed(3)));
 
@@ -47,8 +48,8 @@ assert.strictEqual(agg.totals.total, parseFloat(list.reduce((s, it) => s + (Numb
 assert.strictEqual(agg.totals.weekly, parseFloat([a1, a2].reduce((s, it) => s + (Number(it.co2) || 0), 0).toFixed(3)));
 
 // Delete activity
-activityService.removeActivity(a2.id);
-list = activityService.loadActivities();
+ActivityService.removeActivity(a2.id);
+list = ActivityService.loadActivities();
 assert.strictEqual(list.length, 2, 'Should have two activities after delete');
 assert(!list.find(x => x.id === a2.id), 'Deleted activity should be gone');
 

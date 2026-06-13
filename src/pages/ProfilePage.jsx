@@ -1,14 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { StatCard } from '../components/dashboard/StatCard';
 import { Button } from '../components/ui/Button';
-import { activityService } from '../utils/activityService';
+import { ActivityService } from '../utils/activityService';
+import { aggregate } from '../utils/activityAnalytics';
 import { calculateCarbonScore } from '../utils/carbonScoreService';
 import { AchievementService } from '../utils/achievementService';
 import { GoalService } from '../utils/goalService';
 import { STORAGE_KEYS } from '../config/securityConfig.js';
-import './../components/dashboard/dashboard.css';
+import '../components/dashboard/dashboard.css';
 import './profile.css';
 
 const Avatar = ({ name }) => {
@@ -30,7 +31,7 @@ export const ProfilePage = () => {
 
   useEffect(() => {
     const load = () => {
-      const acts = activityService.loadActivities();
+      const acts = ActivityService.loadActivities();
       setActivities(acts);
       setScoreMeta(calculateCarbonScore(acts));
       const goal = GoalService.loadGoal();
@@ -47,7 +48,7 @@ export const ProfilePage = () => {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-  const agg = activityService.aggregate(activities || []);
+  const agg = aggregate(activities || []);
 
   const handleSettings = () => {
     // If settings panel is present on the page, focus it; otherwise navigate to dashboard root
