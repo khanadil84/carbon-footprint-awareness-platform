@@ -1,6 +1,6 @@
 import { Fragment, memo, useEffect, useState, useCallback } from 'react';
 import { ActivityForm } from './ActivityForm';
-import { ActivityService } from '../../utils/activityService';
+import { ActivityCache } from '../../utils/activityCache';
 import { HistoryService } from '../../utils/historyService';
 import ActivityFilters from './ActivityFilters';
 import { Button } from '../ui/Button';
@@ -14,52 +14,62 @@ export const ActivityHistory = () => {
   const [result, setResult] = useState({ data: [], page:1, pages:1, total:0, stats: {} });
   const [expanded, setExpanded] = useState(null);
 
-  /**
-   * Run a query against HistoryService using optional overrides.
-   * @param {object} [f] optional filters
-   * @param {number} [p] optional page number
-   */
   const runQuery = useCallback((f, p) => {
-    const _f = f ?? filters;
-    const _p = p ?? page;
-    const q = HistoryService.queryActivities({ ..._f, page: _p, pageSize });
+    const q = HistoryService.queryActivities({ ...f, page: p, pageSize });
     setResult(q);
-  }, [filters, page, pageSize]);
+  }, [pageSize]);
 
   useEffect(() => {
     runQuery(filters, page);
-  }, [runQuery, filters, page]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    runQuery(filters, 1);
+  const handleFilterChange = useCallback((newFilters) => {
+    setFilters(newFilters);
     setPage(1);
-  }, [filters, runQuery]);
+    runQuery(newFilters, 1);
+  }, [runQuery]);
 
   useEffect(() => {
-    const onStorage = (e) => { if (e.key === STORAGE_KEYS.ACTIVITIES) runQuery(filters, page); };
+    const onStorage = (e) => {
+      if (e.key === STORAGE_KEYS.ACTIVITIES) {
+        ActivityCache.invalidate();
+        runQuery(filters, page);
+      }
+    };
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
   }, [runQuery, filters, page]);
 
   const handleAdd = () => {
-    runQuery({ ...filters }, 1);
+    runQuery(filters, 1);
     setPage(1);
   };
 
   const handleDelete = (id) => {
     if (!confirm('Delete this activity?')) return;
-    ActivityService.removeActivity(id);
+    ActivityCache.removeActivity(id);
     runQuery(filters, 1);
     setPage(1);
   };
 
   const handleClearAll = () => {
     if (!confirm('Clear all activities? This cannot be undone.')) return;
-    ActivityService.clearActivities();
+    ActivityCache.clearActivities();
     setFilters({});
     setPage(1);
-    runQuery({},1);
+    runQuery({}, 1);
   };
+
+  const goPrevPage = useCallback(() => {
+    const p = page - 1;
+    setPage(p);
+    runQuery(filters, p);
+  }, [page, filters, runQuery]);
+
+  const goNextPage = useCallback(() => {
+    const p = page + 1;
+    setPage(p);
+    runQuery(filters, p);
+  }, [page, filters, runQuery]);
 
   const { stats } = result;
 
@@ -71,7 +81,7 @@ export const ActivityHistory = () => {
       <div className="dfp-section__content">
         <ActivityForm onAdd={handleAdd} />
         <div style={{ height: '0.5rem' }} />
-        <ActivityFilters filters={filters} onChange={setFilters} types={ACTIVITY_TYPES} />
+        <ActivityFilters filters={filters} onChange={handleFilterChange} types={ACTIVITY_TYPES} />
 
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop: '0.75rem' }}>
           <div aria-live="polite" style={{ color: 'var(--text-secondary)' }}>
@@ -87,13 +97,14 @@ export const ActivityHistory = () => {
         ) : (
           <div style={{ overflowX: 'auto', marginTop: '1rem' }}>
             <table className="dfp-activity-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <caption className="sr-only">Activity history list</caption>
               <thead>
                 <tr>
-                  <th style={{ textAlign: 'left', padding: '8px' }}>Date</th>
-                  <th style={{ textAlign: 'left', padding: '8px' }}>Activity</th>
-                  <th style={{ textAlign: 'right', padding: '8px' }}>Input</th>
-                  <th style={{ textAlign: 'right', padding: '8px' }}>CO₂ (kg)</th>
-                  <th style={{ padding: '8px' }} aria-hidden>Actions</th>
+                  <th scope="col" style={{ textAlign: 'left', padding: '8px' }}>Date</th>
+                  <th scope="col" style={{ textAlign: 'left', padding: '8px' }}>Activity</th>
+                  <th scope="col" style={{ textAlign: 'right', padding: '8px' }}>Input</th>
+                  <th scope="col" style={{ textAlign: 'right', padding: '8px' }}>CO₂ (kg)</th>
+                  <th scope="col" style={{ padding: '8px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -132,9 +143,9 @@ export const ActivityHistory = () => {
                 <strong>Stats:</strong> {` ${stats.totalActivities || 0} activities • ${stats.totalCo2 || 0} kg total • avg ${stats.avgCo2 || 0} kg`}
               </div>
               <div style={{ display:'flex', gap:'0.5rem', alignItems:'center' }}>
-                <button className="btn" onClick={() => setPage(p => Math.max(1, p-1))} disabled={page <= 1} aria-label="Previous page">Prev</button>
+                <button className="btn" onClick={goPrevPage} disabled={page <= 1} aria-label="Previous page">Prev</button>
                 <span aria-live="polite">Page {page} / {result.pages}</span>
-                <button className="btn" onClick={() => setPage(p => Math.min(result.pages, p+1))} disabled={page >= result.pages} aria-label="Next page">Next</button>
+                <button className="btn" onClick={goNextPage} disabled={page >= result.pages} aria-label="Next page">Next</button>
               </div>
             </div>
           </div>

@@ -2,8 +2,8 @@ import { memo } from 'react';
 
 export const StatCard = memo(({ title, value, unit, description, ariaLabel }) => {
   return (
-    <div className="dfp-stat-card" role="group" aria-label={ariaLabel || title}>
-      <div className="dfp-stat-card__value" aria-hidden="true">
+    <div className="dfp-stat-card" aria-label={ariaLabel || title}>
+      <div className="dfp-stat-card__value">
         {value}
         {unit && <span className="dfp-stat-card__unit">{unit}</span>}
       </div>

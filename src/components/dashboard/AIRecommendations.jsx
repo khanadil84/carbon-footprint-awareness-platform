@@ -1,21 +1,22 @@
 import { memo, useEffect, useState } from 'react';
-import { ActivityService } from '../../utils/activityService';
-import { generateRecommendations } from '../../utils/recommendationService';
+import { ActivityCache } from '../../utils/activityCache';
 import { STORAGE_KEYS } from '../../config/securityConfig.js';
 
 export const AIRecommendations = () => {
   const [recs, setRecs] = useState([]);
 
   const refresh = () => {
-    const activities = ActivityService.loadActivities();
-    const list = generateRecommendations(activities);
+    const list = ActivityCache.getRecommendations();
     setRecs(list);
   };
 
   useEffect(() => {
     refresh();
     const onStorage = (e) => {
-      if (e.key === STORAGE_KEYS.ACTIVITIES) refresh();
+      if (e.key === STORAGE_KEYS.ACTIVITIES) {
+        ActivityCache.invalidate();
+        refresh();
+      }
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);

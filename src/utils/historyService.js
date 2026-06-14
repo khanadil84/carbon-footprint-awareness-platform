@@ -1,4 +1,4 @@
-import { ActivityService } from './activityService.js';
+import { ActivityCache } from './activityCache.js';
 import { CATEGORY_TYPES } from '../config/constants.js';
 
 const defaultPageSize = 10;
@@ -88,7 +88,7 @@ const sorters = {
 
 const applySort = (list, sortKey) => {
   const fn = sorters[sortKey] || sorters.newest;
-  return [...list].sort(fn);
+  return list.sort(fn);
 };
 
 /**
@@ -114,10 +114,16 @@ const paginate = (list, page = 1, pageSize = defaultPageSize) => {
  */
 const computeStats = (list = []) => {
   const totalActivities = list.length;
-  const totalCo2 = list.reduce((s, a) => s + (Number(a.co2) || 0), 0);
+  let totalCo2 = 0;
+  let highest = null;
+  let lowest = null;
+  for (let i = 0; i < totalActivities; i++) {
+    const co2 = Number(list[i].co2) || 0;
+    totalCo2 += co2;
+    if (highest === null || co2 > Number(highest.co2)) highest = list[i];
+    if (lowest === null || co2 < Number(lowest.co2)) lowest = list[i];
+  }
   const avgCo2 = totalActivities > 0 ? Number((totalCo2 / totalActivities).toFixed(3)) : 0;
-  const highest = list.reduce((best, a) => (!best || (Number(a.co2) > Number(best.co2))) ? a : best, null);
-  const lowest = list.reduce((best, a) => (!best || (Number(a.co2) < Number(best.co2))) ? a : best, null);
   return { totalActivities, totalCo2: Number(totalCo2.toFixed(3)), avgCo2, highest, lowest };
 };
 
@@ -126,10 +132,18 @@ const computeStats = (list = []) => {
  * @param {object} options
  */
 export const queryActivities = ({ search, startDate, endDate, category, type, minCo2, maxCo2, sort = 'newest', page = 1, pageSize = defaultPageSize } = {}) => {
-  const all = ActivityService.loadActivities();
+  const useIndex = !search && !startDate && !endDate && !minCo2 && !maxCo2;
+  let filtered;
+  if (useIndex && type && type !== 'All' && (!category || category === 'All')) {
+    filtered = ActivityCache.getIndex('byType').get(type) || [];
+  } else if (useIndex && category && category !== 'All' && (!type || type === 'All')) {
+    filtered = ActivityCache.getIndex('byCategory').get(category) || [];
+  } else {
+    filtered = ActivityCache.getActivities();
+  }
   const start = parseDate(startDate);
   const end = parseDate(endDate);
-  const filtered = all.filter(a =>
+  filtered = filtered.filter(a =>
     matchesSearch(a, search) && matchesCategory(a, category) && matchesType(a, type) && matchesDateRange(a, start, end) && matchesCo2Range(a, minCo2, maxCo2)
   );
   const stats = computeStats(filtered);

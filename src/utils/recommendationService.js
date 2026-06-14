@@ -1,6 +1,5 @@
-import { breakdownByCategory, aggregate } from './activityAnalytics.js';
+import { breakdownByCategory } from './activityAnalytics.js';
 import { clamp } from '../domain/mathUtils.js';
-import { typeMapFromBreakdown } from '../domain/breakdownUtils.js';
 const priorityOrder = { High: 0, Medium: 1, Low: 2 };
 
 const rec = (title, description, priority, estimatedSavingsKg, suggestion, encouragement = null) => ({
@@ -75,18 +74,21 @@ const sortRecs = (list) => list.sort((a, b) => (priorityOrder[a.priority] - prio
 
 /**
  * Generate prioritized CO₂ reduction recommendations based on activity data.
+ * Accepts optional precomputed breakdown and monthlyTotal to avoid redundant passes.
  * Each rule returns null (no issue) or a recommendation object. Empty dataset
  * gets a single "no data" rec. If no rule fires, a fallback encouragement is added.
  * @param {Array} activities
+ * @param {{list:Array, total:number}?} precomputedBreakdown
+ * @param {number?} precomputedMonthlyTotal
  * @returns {Array<{title:string, description:string, priority:string, estimatedSavingsKg:number, suggestion:string, encouragement:string|null}>}
  */
-export const generateRecommendations = (activities) => {
+export const generateRecommendations = (activities, precomputedBreakdown = null, precomputedMonthlyTotal = null) => {
   const empty = ruleEmpty(activities);
   if (empty) return sortRecs([empty]);
 
-  const breakdown = breakdownByCategory(activities);
-  const monthlyTotal = aggregate(activities).totals.monthly || 0;
-  const typeMap = typeMapFromBreakdown(breakdown);
+  const breakdown = precomputedBreakdown || breakdownByCategory(activities);
+  const monthlyTotal = precomputedMonthlyTotal ?? breakdown.total;
+  const typeMap = new Map(breakdown.list.map(l => [l.type, l]));
 
   const recs = [
     ruleLowEmissions(monthlyTotal),

@@ -7,11 +7,23 @@ const LineChartComponent = ({ data = [], color = 'var(--brand-primary)', ariaLab
     const y = 100 - (d.value / max) * 100;
     return `${x},${y}`;
   }).join(' '), [data, max]);
+
+  const dataSummary = useMemo(() => {
+    if (!data || data.length === 0) return 'No data';
+    const vals = data.map(d => d.value);
+    return `${data.length} data points. Range: ${Math.min(...vals).toFixed(2)} to ${Math.max(...vals).toFixed(2)} kg. Values: ${vals.map((v, i) => `${i + 1}: ${v.toFixed(2)} kg`).join(', ')}`;
+  }, [data]);
+
   if (!data || data.length === 0) return <div className="chart-empty">No data</div>;
   return (
-    <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label={ariaLabel} className="ecochart-line">
-      <polyline fill="none" stroke={color} strokeWidth="1.5" points={points} />
-    </svg>
+    <>
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label={ariaLabel} aria-roledescription="line chart" className="ecochart-line">
+        <title>{ariaLabel}</title>
+        <desc>{dataSummary}</desc>
+        <polyline fill="none" stroke={color} strokeWidth="1.5" points={points} />
+      </svg>
+      <span className="sr-only">{dataSummary}</span>
+    </>
   );
 };
 

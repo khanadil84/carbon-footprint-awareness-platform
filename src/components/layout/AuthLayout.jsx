@@ -1,9 +1,9 @@
-// React import not required with the new JSX transform
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { Leaf } from 'lucide-react';
 import './AuthLayout.css';
 
-export const AuthLayout = ({ children, title, subtitle }) => {
+export const AuthLayout = memo(({ children, title, subtitle }) => {
   return (
     <div className="auth-layout">
       {/* Visual Side */}
@@ -39,4 +39,4 @@ export const AuthLayout = ({ children, title, subtitle }) => {
       </div>
     </div>
   );
-};
+});

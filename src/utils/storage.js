@@ -149,20 +149,23 @@ const safeStringifyJSON = (value) => {
 
 /**
  * Read and parse a JSON value from storage with optional schema validation.
- * Returns a deep clone of the parsed data to prevent in-memory mutation.
+ * By default returns a deep clone to prevent in-memory mutation. Pass
+ * skipClone=true on hot paths where the caller immediately creates a new
+ * array/object from the result (e.g. .filter(), spread).
  * If validation fails, the fallback is returned.
  * @template T
  * @param {string} key
  * @param {T} [fallback]
  * @param {function(T):boolean} [validate]
+ * @param {boolean} [skipClone=false]
  * @returns {T}
  */
-const safeGetJSON = (key, fallback = null, validate = null) => {
+const safeGetJSON = (key, fallback = null, validate = null, skipClone = false) => {
   const raw = safeGetItem(key);
   const parsed = safeParseJSON(raw, null);
-  if (parsed === null) return deepClone(fallback);
-  if (typeof validate === 'function' && !validate(parsed)) return deepClone(fallback);
-  return deepClone(parsed);
+  if (parsed === null) return skipClone ? fallback : deepClone(fallback);
+  if (typeof validate === 'function' && !validate(parsed)) return skipClone ? fallback : deepClone(fallback);
+  return skipClone ? parsed : deepClone(parsed);
 };
 
 /**

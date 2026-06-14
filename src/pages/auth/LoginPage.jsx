@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock } from 'lucide-react';
 import { AuthLayout } from '../../components/layout/AuthLayout';
@@ -15,17 +15,17 @@ export const LoginPage = () => {
   const [errors, setErrors] = useState({ email: '', password: '', submit: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = (e) => {
+  const handleChange = useCallback((e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
-  };
+    setErrors(prev => {
+      if (prev[name]) return { ...prev, [name]: '' };
+      return prev;
+    });
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -96,6 +96,7 @@ export const LoginPage = () => {
         <div className="auth-form-actions">
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
             <input 
+              id="rememberMe"
               type="checkbox" 
               name="rememberMe"
               checked={formData.rememberMe}

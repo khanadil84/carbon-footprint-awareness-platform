@@ -1,18 +1,19 @@
 import { memo, useMemo } from 'react';
-import { aggregateByDay, aggregateByWeek, aggregateByMonth, breakdownByCategory, summaryStats } from '../../utils/activityAnalytics.js';
-import { ActivityService } from '../../utils/activityService';
+import { computeFullAggregation, aggregateByDay, aggregateByWeek, aggregateByMonth, breakdownByCategory, summaryStats } from '../../utils/activityAnalytics.js';
+import { ActivityCache } from '../../utils/activityCache';
 import { StatCard } from './StatCard';
 import { LineChart, SimpleBar } from '../ui/Chart';
 import './analytics.css';
 
 export const AnalyticsSection = ({ activitiesProp, preferredRange }) => {
-  const activities = activitiesProp || ActivityService.loadActivities();
+  const activities = activitiesProp || ActivityCache.getActivities();
 
-  const daily = useMemo(() => aggregateByDay(activities, 30), [activities]);
+  const fullAgg = useMemo(() => computeFullAggregation(activities), [activities]);
+  const daily = useMemo(() => aggregateByDay(activities, 30, fullAgg.dayMap), [activities, fullAgg]);
   const weekly = useMemo(() => aggregateByWeek(activities, 12), [activities]);
-  const monthly = useMemo(() => aggregateByMonth(activities, 12), [activities]);
-  const breakdown = useMemo(() => breakdownByCategory(activities), [activities]);
-  const summary = useMemo(() => summaryStats(activities), [activities]);
+  const monthly = useMemo(() => aggregateByMonth(activities, 12, fullAgg.monthMap), [activities, fullAgg]);
+  const breakdown = useMemo(() => breakdownByCategory(activities, fullAgg), [activities, fullAgg]);
+  const summary = useMemo(() => summaryStats(activities, fullAgg), [activities, fullAgg]);
 
   // Determine order based on preferredRange to apply user preference
   const cards = useMemo(() => {
@@ -53,13 +54,15 @@ export const AnalyticsSection = ({ activitiesProp, preferredRange }) => {
             {breakdown.list.length === 0 ? (
               <p className="dfp-placeholder">No data to display.</p>
             ) : (
-              breakdown.list.map(b => (
-                <SimpleBar key={b.type} pct={b.pct} label={`${b.type} (${b.value} kg)`} />
-              ))
+              <div role="list" aria-label="Activity breakdown by category">
+                {breakdown.list.map(b => (
+                  <SimpleBar key={b.type} pct={b.pct} label={`${b.type} (${b.value} kg)`} />
+                ))}
+              </div>
             )}
           </div>
 
-          <div className="analytics-summary">
+          <div className="analytics-summary" aria-label="Summary statistics" role="region">
             <h3>Summary</h3>
             <div className="summary-grid">
               <StatCard title="Highest Category" value={summary.highestEmissionCategory || '—'} ariaLabel="Highest emission category" />

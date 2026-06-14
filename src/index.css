@@ -55,6 +55,24 @@ a:hover {
   color: var(--brand-primary-hover);
 }
 
+/* Skip to main content link - visible on focus for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: var(--brand-primary);
+  color: #fff;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.skip-link:focus {
+  left: 0;
+  top: 0;
+}
+
 button {
   font-family: inherit;
 }

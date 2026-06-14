@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '../ui/Button';
-import { ActivityService } from '../../utils/activityService';
+import { ActivityCache } from '../../utils/activityCache';
 import { sanitizeNumber, activity } from '../../domain/validation.js';
 import { ACTIVITY_OPTIONS } from '../../config/constants.js';
 
@@ -21,7 +21,7 @@ export const ActivityForm = ({ onAdd }) => {
       return;
     }
     try {
-      const activity = ActivityService.addActivity({ type, value: num });
+      const activity = ActivityCache.addActivity({ type, value: num });
       setValue('');
       setError('');
       if (onAdd) onAdd(activity);
@@ -35,14 +35,14 @@ export const ActivityForm = ({ onAdd }) => {
   return (
     <form onSubmit={handleSubmit} className="activity-form" aria-label="Add activity">
       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-        <label htmlFor="activity-type" style={{ display: 'none' }}>Activity type</label>
-        <select id="activity-type" value={type} onChange={(e) => setType(e.target.value)} aria-label="Activity type">
+        <label htmlFor="activity-type" className="sr-only">Activity type</label>
+        <select id="activity-type" value={type} onChange={(e) => setType(e.target.value)}>
           {ACTIVITY_OPTIONS.map(o => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
 
-        <label htmlFor="activity-value" style={{ display: 'none' }}>Value</label>
+        <label htmlFor="activity-value" className="sr-only">Value {unit ? `(${unit})` : ''}</label>
         <input
           id="activity-value"
           name="activity-value"
@@ -52,8 +52,9 @@ export const ActivityForm = ({ onAdd }) => {
           placeholder={`Enter amount (${unit})`}
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          aria-label={`Value in ${unit}`}
+          aria-describedby="activity-unit-hint"
         />
+        <span id="activity-unit-hint" className="sr-only">{unit}</span>
 
         <Button type="submit" variant="primary">Add</Button>
       </div>

@@ -49,58 +49,48 @@ export const SettingsPanel = () => {
       <div className="dfp-section__content">
         <form onSubmit={e=>{e.preventDefault(); if (settings.saveMode==='manual') handleSave();}}>
           <div style={{ display:'grid', gap:'0.5rem' }}>
-            <label>
-              Preferred units
-              <select aria-label="Preferred units" value={settings.units} onChange={e=>update({ units: e.target.value })}>
-                <option value="metric">Metric (kg, km)</option>
-                <option value="imperial">Imperial (lbs, miles)</option>
-              </select>
-            </label>
+            <label htmlFor="settings-units">Preferred units</label>
+            <select id="settings-units" value={settings.units} onChange={e=>update({ units: e.target.value })}>
+              <option value="metric">Metric (kg, km)</option>
+              <option value="imperial">Imperial (lbs, miles)</option>
+            </select>
 
-            <label>
-              Default dashboard view
-              <select aria-label="Default dashboard view" value={settings.defaultView} onChange={e=>update({ defaultView: e.target.value })}>
-                <option value="overview">Overview</option>
-                <option value="analytics">Analytics</option>
-                <option value="history">History</option>
-              </select>
-            </label>
+            <label htmlFor="settings-default-view">Default dashboard view</label>
+            <select id="settings-default-view" value={settings.defaultView} onChange={e=>update({ defaultView: e.target.value })}>
+              <option value="overview">Overview</option>
+              <option value="analytics">Analytics</option>
+              <option value="history">History</option>
+            </select>
 
-            <label>
-              Preferred analytics range
-              <select aria-label="Preferred analytics range" value={settings.analyticsRange} onChange={e=>update({ analyticsRange: e.target.value })}>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-              </select>
-            </label>
+            <label htmlFor="settings-analytics-range">Preferred analytics range</label>
+            <select id="settings-analytics-range" value={settings.analyticsRange} onChange={e=>update({ analyticsRange: e.target.value })}>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
 
-            <label style={{ display:'flex', alignItems:'center', gap:'0.5rem' }}>
-              <input type="checkbox" aria-label="Enable notifications" checked={settings.notificationsEnabled} onChange={e=>update({ notificationsEnabled: e.target.checked })} />
+            <label htmlFor="settings-notifications" style={{ display:'flex', alignItems:'center', gap:'0.5rem' }}>
+              <input id="settings-notifications" type="checkbox" checked={settings.notificationsEnabled} onChange={e=>update({ notificationsEnabled: e.target.checked })} />
               <span>Enable notifications</span>
             </label>
 
-            <label>
-              Theme preference (placeholder)
-              <select aria-label="Theme preference" value={settings.theme} onChange={e=>update({ theme: e.target.value })}>
-                <option value="system">System</option>
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-              </select>
-            </label>
+            <label htmlFor="settings-theme">Theme preference</label>
+            <select id="settings-theme" value={settings.theme} onChange={e=>update({ theme: e.target.value })}>
+              <option value="system">System</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
 
-            <label>
-              Save mode
-              <select aria-label="Save mode" value={settings.saveMode} onChange={e=>update({ saveMode: e.target.value })}>
-                <option value="auto">Save automatically</option>
-                <option value="manual">Save manually</option>
-              </select>
-            </label>
+            <label htmlFor="settings-save-mode">Save mode</label>
+            <select id="settings-save-mode" value={settings.saveMode} onChange={e=>update({ saveMode: e.target.value })}>
+              <option value="auto">Save automatically</option>
+              <option value="manual">Save manually</option>
+            </select>
 
             <div style={{ display:'flex', gap:'0.5rem', alignItems:'center' }}>
               <button type="submit" className="btn" disabled={settings.saveMode==='auto'}>Save</button>
               <button type="button" className="btn" onClick={handleReset}>Reset defaults</button>
-              <div aria-live="polite" style={{ color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>{status}</div>
+              <div role="status" aria-live="polite" style={{ color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>{status}</div>
             </div>
           </div>
         </form>

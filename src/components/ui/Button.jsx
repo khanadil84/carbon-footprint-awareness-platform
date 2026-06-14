@@ -16,7 +16,6 @@ export const Button = ({
   return (
     <button
       className={`${baseClass} ${variantClass} ${sizeClass} ${className}`.trim()}
-      aria-disabled={disabled ? 'true' : 'false'}
       disabled={disabled}
       {...props}
     >

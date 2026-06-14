@@ -1,14 +1,23 @@
 import { memo, useEffect, useState } from 'react';
+
 import { ExportService } from '../../utils/exportService';
-import { ActivityService } from '../../utils/activityService';
+import { ActivityCache } from '../../utils/activityCache';
 import { STORAGE_KEYS } from '../../config/securityConfig.js';
 import './print.css';
+
+const countUnlocked = (achievements) => {
+  let count = 0;
+  for (let i = 0; i < achievements.length; i++) {
+    if (achievements[i].unlocked) count++;
+  }
+  return count;
+};
 
 export const PrintableReport = () => {
   const [report, setReport] = useState(null);
 
   const refresh = () => {
-    const activities = ActivityService.loadActivities();
+    const activities = ActivityCache.getActivities();
     const data = ExportService.makeReportData(activities);
     setReport(data);
   };
@@ -16,7 +25,10 @@ export const PrintableReport = () => {
   useEffect(() => {
     refresh();
     const onStorage = (e) => {
-      if ([STORAGE_KEYS.ACTIVITIES, STORAGE_KEYS.GOAL, STORAGE_KEYS.ACHIEVEMENTS].includes(e.key)) refresh();
+      if ([STORAGE_KEYS.ACTIVITIES, STORAGE_KEYS.GOAL, STORAGE_KEYS.ACHIEVEMENTS].includes(e.key)) {
+        ActivityCache.invalidate();
+        refresh();
+      }
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
@@ -42,7 +54,7 @@ export const PrintableReport = () => {
           <dt>Today's CO₂</dt><dd>{report.totals.today} kg</dd>
           <dt>Highest Emission Category</dt><dd>{report.breakdown.list && report.breakdown.list.length>0?report.breakdown.list[0].type:'—'}</dd>
           <dt>Number of Activities</dt><dd>{report.recentActivities.length}</dd>
-          <dt>Achievements Unlocked</dt><dd>{report.achievements.filter(a=>a.unlocked).length}</dd>
+          <dt>Achievements Unlocked</dt><dd>{countUnlocked(report.achievements)}</dd>
         </dl>
       </section>
 

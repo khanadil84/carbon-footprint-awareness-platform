@@ -1,11 +1,10 @@
-import { aggregate, breakdownByCategory } from './activityAnalytics.js';
+import { computeFullAggregation } from './activityAnalytics.js';
 import { safeGetJSON, safeSetJSON, safeRemoveItem } from './storage.js';
 import { sanitizeNumber } from '../domain/validation.js';
 import { STORAGE_KEYS } from '../config/securityConfig.js';
 import { daysInMonth } from '../domain/dateUtils.js';
 import { computeStatus, generateInsight } from '../domain/goalProgress.js';
 import { clamp } from '../domain/mathUtils.js';
-import { typeMapFromBreakdown } from '../domain/breakdownUtils.js';
 
 const STORAGE_KEY = STORAGE_KEYS.GOAL;
 
@@ -30,10 +29,10 @@ export const clearGoal = () => {
  * @param {{targetKg:number}|null} goal
  * @returns {{target:number|null, current:number, remaining:number|null, percent:number, daysRemaining:number, status:string, projection:number, improvementNeeded:number|null, insight:string}}
  */
-export const computeProgress = (activities, goal) => {
+export const computeProgress = (activities, goal, precomputedFull = null) => {
   const target = goal && goal.targetKg ? Number(goal.targetKg) : null;
-  const agg = aggregate(activities || []);
-  const current = agg.totals.monthly || 0;
+  const full = precomputedFull || computeFullAggregation(activities || []);
+  const current = full.monthlySum || 0;
   const daysRemaining = daysInMonth(new Date()) - new Date().getDate();
 
   if (!target) {
@@ -49,10 +48,8 @@ export const computeProgress = (activities, goal) => {
   const status = computeStatus(current, target, projected);
   const improvementNeeded = Math.max(0, parseFloat((projected - target).toFixed(3)));
 
-  const breakdown = breakdownByCategory(activities || []);
-  const typeMap = typeMapFromBreakdown(breakdown);
-  const car = typeMap.get('Car') || { value: 0 };
-  const estIfReduceCar10 = parseFloat((car.value * 0.10).toFixed(3));
+  const carVal = full.typeSum.get('Car') || 0;
+  const estIfReduceCar10 = parseFloat((carVal * 0.10).toFixed(3));
   const insight = generateInsight(status, improvementNeeded, estIfReduceCar10);
 
   return { target, current, remaining, percent: Math.round(percent), daysRemaining, status, projection: projected, improvementNeeded, insight };

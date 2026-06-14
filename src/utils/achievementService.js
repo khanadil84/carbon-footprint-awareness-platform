@@ -1,7 +1,7 @@
 import { GoalService } from './goalService.js';
 import { safeGetJSON, safeSetJSON } from './storage.js';
 import { STORAGE_KEYS } from '../config/securityConfig.js';
-import { nowIso, daysKey, lastNDatesSet } from '../domain/dateUtils.js';
+import { nowIso, lastNDatesSet } from '../domain/dateUtils.js';
 import { defaultAchievements } from '../domain/achievementDefinitions.js';
 import { achievements } from '../domain/validation.js';
 
@@ -71,9 +71,9 @@ const evaluateCarbonReducer = (results, months) => {
   }
 };
 
-const evaluateGoalAchiever = (results, activities, goal) => {
+const evaluateGoalAchiever = (results, activities, goal, precomputedAgg) => {
   if (goal && goal.targetKg) {
-    const p = GoalService.computeProgress(activities, goal);
+    const p = GoalService.computeProgress(activities, goal, precomputedAgg);
     if (p.status === 'Goal Achieved') mark(results, 'goal_achiever');
     setProgress(results, 'goal_achiever', { status: p.status, hint: p.insight });
   }
@@ -111,48 +111,44 @@ const mergeSaved = (results, saved) => {
   saveSaved(saved);
 };
 
-const collectStats = (activities) => {
-  const activitiesByDate = new Map();
-  const months = {};
-  let shortCarCount = 0, busCount = 0, trainCount = 0;
-  let electricitySum = 0, wasteSum = 0;
-
-  for (let i = 0; i < activities.length; i++) {
-    const a = activities[i];
-    const d = new Date(a.date);
-    const k = daysKey(d);
-    activitiesByDate.set(k, (activitiesByDate.get(k) || 0) + 1);
-
-    const monthKey = `${d.getFullYear()}-${d.getMonth() + 1}`;
-    const co2 = Number(a.co2) || 0;
-    months[monthKey] = (months[monthKey] || 0) + co2;
-
-    if (a.type === 'Car') {
-      if (Number(a.value) <= 2) shortCarCount++;
-    } else if (a.type === 'Bus') {
-      busCount++;
-    } else if (a.type === 'Train') {
-      trainCount++;
-    } else if (a.type === 'Electricity') {
-      electricitySum += co2;
-    } else if (a.type === 'Waste') {
-      wasteSum += co2;
-    }
+const collectStats = (_activities, precomputedAgg) => {
+  if (!precomputedAgg) {
+    return { activitiesByDate: new Map(), months: {}, shortCarCount: 0, busCount: 0, trainCount: 0, electricitySum: 0, wasteSum: 0 };
   }
-
-  return { activitiesByDate, months, shortCarCount, busCount, trainCount, electricitySum, wasteSum };
+  const months = {};
+  for (const [k, v] of precomputedAgg.monthMap) months[k] = v;
+  return {
+    activitiesByDate: precomputedAgg.dateActivityCounts,
+    months,
+    shortCarCount: precomputedAgg.typeCounts.carShort,
+    busCount: precomputedAgg.typeCounts.bus,
+    trainCount: precomputedAgg.typeCounts.train,
+    electricitySum: precomputedAgg.typeSum.get('Electricity') || 0,
+    wasteSum: precomputedAgg.typeSum.get('Waste') || 0
+  };
 };
 
 const recentUnlocked = (results) => {
-  const unlockedList = results.filter(r => r.unlocked).sort((a, b) => new Date(b.unlockedDate) - new Date(a.unlockedDate));
-  return unlockedList.length > 0 ? unlockedList[0] : null;
+  let latest = null;
+  let latestDate = 0;
+  for (let i = 0; i < results.length; i++) {
+    const r = results[i];
+    if (r.unlocked) {
+      const d = new Date(r.unlockedDate).getTime();
+      if (!latest || d > latestDate) {
+        latest = r;
+        latestDate = d;
+      }
+    }
+  }
+  return latest;
 };
 
-export const evaluateAchievements = (activities = [], goal = null) => {
+export const evaluateAchievements = (activities = [], goal = null, precomputedAgg = null) => {
   const saved = loadSaved();
   const results = defaultAchievements.map(def => ({ ...def, unlocked: false, unlockedDate: null, progress: null }));
 
-  const stats = collectStats(activities);
+  const stats = collectStats(activities, precomputedAgg);
   if (!stats) return { achievements: results, recent: null };
 
   const { activitiesByDate, months, shortCarCount, busCount, electricitySum, wasteSum } = stats;
@@ -165,7 +161,7 @@ export const evaluateAchievements = (activities = [], goal = null) => {
   evaluateEnergySaver(results, electricitySum, activities.length > 0);
   evaluateWasteReducer(results, wasteSum, activities.length > 0);
   evaluateCarbonReducer(results, months);
-  evaluateGoalAchiever(results, activities, goal);
+  evaluateGoalAchiever(results, activities, goal, precomputedAgg);
   evaluateStreaks(results, activitiesByDate);
 
   mergeSaved(results, saved);

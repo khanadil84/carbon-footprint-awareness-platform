@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { GoalService } from '../../utils/goalService';
 import { STORAGE_KEYS } from '../../config/securityConfig.js';
 import { sanitizeNumber } from '../../domain/validation.js';
-import { ActivityService } from '../../utils/activityService';
+import { ActivityCache } from '../../utils/activityCache';
 import { Button } from '../ui/Button';
 
 export const MonthlyGoal = () => {
@@ -11,23 +11,24 @@ export const MonthlyGoal = () => {
   const [editing, setEditing] = useState(false);
   const [input, setInput] = useState(goal ? goal.targetKg : '');
 
-  const refresh = useCallback(() => {
-    const activities = ActivityService.loadActivities();
-    const p = GoalService.computeProgress(activities, goal);
+  const refresh = useCallback((g) => {
+    const full = ActivityCache.getAggregation();
+    const p = GoalService.computeProgress(null, g, full);
     setProgress(p);
-  }, [goal]);
+  }, []);
 
   useEffect(() => {
-    refresh();
+    refresh(goal);
     const onStorage = (e) => {
       if ([STORAGE_KEYS.ACTIVITIES, STORAGE_KEYS.GOAL].includes(e.key)) {
-        setGoal(GoalService.loadGoal());
-        refresh();
+        const newGoal = GoalService.loadGoal();
+        setGoal(newGoal);
+        refresh(newGoal);
       }
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, [refresh]);
+  }, [goal, refresh]);
 
   const handleSave = () => {
     const val = sanitizeNumber(input, null);
@@ -36,14 +37,14 @@ export const MonthlyGoal = () => {
     GoalService.saveGoal(newGoal);
     setGoal(newGoal);
     setEditing(false);
-    refresh();
+    refresh(newGoal);
   };
 
   const handleClear = () => {
     GoalService.clearGoal();
     setGoal(null);
     setInput('');
-    refresh();
+    refresh(null);
   };
 
   return (
@@ -56,7 +57,8 @@ export const MonthlyGoal = () => {
           <div>
             <p className="dfp-placeholder">No monthly goal set.</p>
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-              <input type="number" placeholder="Target kg CO₂" value={input} onChange={e => setInput(e.target.value)} aria-label="Monthly target in kg" />
+              <label htmlFor="goal-target" className="sr-only">Monthly target in kg</label>
+              <input id="goal-target" type="number" placeholder="Target kg CO₂" value={input} onChange={e => setInput(e.target.value)} />
               <Button variant="primary" onClick={handleSave}>Set Goal</Button>
             </div>
           </div>
@@ -75,13 +77,14 @@ export const MonthlyGoal = () => {
 
             {editing && (
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                <input type="number" value={input} onChange={e => setInput(e.target.value)} aria-label="Edit monthly target" />
+                <label htmlFor="edit-goal-target" className="sr-only">Edit monthly target</label>
+                <input id="edit-goal-target" type="number" value={input} onChange={e => setInput(e.target.value)} />
                 <Button variant="primary" onClick={handleSave}>Save</Button>
               </div>
             )}
 
             {progress && (
-              <div style={{ marginTop: '1rem' }}>
+              <div style={{ marginTop: '1rem' }} role="region" aria-label="Goal progress">
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <div>
                     <div style={{ fontWeight: 700 }}>{progress.current} kg</div>
@@ -98,13 +101,13 @@ export const MonthlyGoal = () => {
                 </div>
 
                 <div style={{ marginTop: '0.75rem' }}>
-                  <div className="goal-progress-track" aria-hidden>
+                  <div className="goal-progress-track" role="progressbar" aria-valuenow={progress.percent} aria-valuemin="0" aria-valuemax="100" aria-label={`${progress.percent}% of monthly goal completed`}>
                     <div className="goal-progress-fill" style={{ width: `${progress.percent}%` }} />
                   </div>
                   <div style={{ marginTop: '0.5rem', color: 'var(--text-secondary)' }}>{progress.daysRemaining} days remaining</div>
                 </div>
 
-                <div style={{ marginTop: '0.75rem', color: 'var(--text-secondary)' }}><strong>Status:</strong> {progress.status}</div>
+                <div style={{ marginTop: '0.75rem', color: 'var(--text-secondary)' }} role="status"><strong>Status:</strong> {progress.status}</div>
                 <div style={{ marginTop: '0.5rem' }}>{progress.insight}</div>
 
                 <div style={{ marginTop: '0.75rem' }}>

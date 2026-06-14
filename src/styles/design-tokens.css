@@ -14,6 +14,8 @@
   --color-gray-100: #f3f4f6;
   --color-gray-200: #e5e7eb;
   --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
   --color-gray-800: #1f2937;
   --color-gray-900: #111827;
 
@@ -25,7 +27,7 @@
   --bg-tertiary: var(--color-emerald-50);
   
   --text-primary: var(--color-gray-900);
-  --text-secondary: var(--color-gray-500);
+  --text-secondary: var(--color-gray-600);
   --text-inverse: var(--color-white);
   --text-accent: var(--color-emerald-700);
 
@@ -76,6 +78,34 @@
   /* Transitions */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+
+  .hero-decorative-card {
+    animation: none !important;
+  }
+
+  .feature-card:hover,
+  .dfp-section__content:hover,
+  .dfp-stat-card:hover,
+  .analytics-card:hover,
+  .dfp-most-recent:hover {
+    transform: none !important;
+  }
 }
 
 /* Dark Mode Support (optional, for later extension) */

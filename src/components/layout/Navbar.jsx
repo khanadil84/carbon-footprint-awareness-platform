@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useState, useCallback, useEffect, useRef } from 'react';
 import { Leaf, Menu, X } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useNavigate } from 'react-router-dom';
@@ -7,13 +7,34 @@ import './Navbar.css';
 export const Navbar = memo(() => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const toggleRef = useRef(null);
+  const menuRef = useRef(null);
 
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+  const toggleMenu = useCallback(() => setIsMenuOpen(prev => !prev), []);
+  const closeMenu = useCallback(() => {
+    setIsMenuOpen(false);
+    toggleRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') closeMenu();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isMenuOpen, closeMenu]);
+
+  useEffect(() => {
+    if (!isMenuOpen || !menuRef.current) return;
+    const firstFocusable = menuRef.current.querySelector('a, button, [tabindex]:not([tabindex="-1"])');
+    if (firstFocusable) setTimeout(() => firstFocusable.focus(), 50);
+  }, [isMenuOpen]);
 
   return (
     <header className="navbar-header">
       <div className="container">
-        <nav className="navbar" aria-label="Main Navigation">
+        <nav className="navbar" aria-label="Main navigation">
           <div className="navbar-brand">
             <a href="/" className="navbar-logo" aria-label="EcoTrack Home">
               <Leaf className="navbar-logo-icon" aria-hidden="true" />
@@ -21,7 +42,6 @@ export const Navbar = memo(() => {
             </a>
           </div>
 
-          {/* Desktop Navigation */}
           <div className="navbar-menu desktop-only">
             <ul className="navbar-links">
               <li><a href="#features" className="navbar-link">Features</a></li>
@@ -34,8 +54,8 @@ export const Navbar = memo(() => {
             </div>
           </div>
 
-          {/* Mobile Menu Toggle */}
           <button
+            ref={toggleRef}
             className="navbar-toggle mobile-only"
             onClick={toggleMenu}
             aria-expanded={isMenuOpen}
@@ -47,17 +67,16 @@ export const Navbar = memo(() => {
         </nav>
       </div>
 
-      {/* Mobile Navigation */}
       {isMenuOpen && (
-        <div id="mobile-menu" className="mobile-menu" role="menu">
+        <div id="mobile-menu" className="mobile-menu" ref={menuRef} role="menu" aria-label="Mobile navigation">
           <ul className="mobile-menu-links">
-            <li><a href="#features" className="mobile-menu-link" onClick={toggleMenu}>Features</a></li>
-            <li><a href="#impact" className="mobile-menu-link" onClick={toggleMenu}>Impact</a></li>
-            <li><a href="#about" className="mobile-menu-link" onClick={toggleMenu}>About Us</a></li>
+            <li><a href="#features" className="mobile-menu-link" onClick={closeMenu}>Features</a></li>
+            <li><a href="#impact" className="mobile-menu-link" onClick={closeMenu}>Impact</a></li>
+            <li><a href="#about" className="mobile-menu-link" onClick={closeMenu}>About Us</a></li>
           </ul>
           <div className="mobile-menu-actions">
-            <Button variant="ghost" className="mobile-action-btn" onClick={() => { toggleMenu(); navigate('/login'); }}>Log in</Button>
-            <Button variant="primary" className="mobile-action-btn" onClick={() => { toggleMenu(); navigate('/signup'); }}>Sign up</Button>
+            <Button variant="ghost" className="mobile-action-btn" onClick={() => { closeMenu(); navigate('/login'); }}>Log in</Button>
+            <Button variant="primary" className="mobile-action-btn" onClick={() => { closeMenu(); navigate('/signup'); }}>Sign up</Button>
           </div>
         </div>
       )}

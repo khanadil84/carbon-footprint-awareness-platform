@@ -1,6 +1,6 @@
-// React import not required with the new JSX transform
+import { memo } from 'react';
 
-export const WelcomeSection = ({ user }) => {
+export const WelcomeSection = memo(({ user }) => {
   return (
     <section className="dfp-welcome" aria-labelledby="dfp-welcome-heading">
       <div className="dfp-welcome__inner container">
@@ -11,6 +11,4 @@ export const WelcomeSection = ({ user }) => {
       </div>
     </section>
   );
-};
-
-export default WelcomeSection;
+});

@@ -1,33 +1,36 @@
-import { aggregate, breakdownByCategory, aggregateByMonth } from './activityAnalytics.js';
+import { computeFullAggregation, breakdownByCategory } from './activityAnalytics.js';
 import { generateRecommendations } from './recommendationService.js';
 import { clamp } from '../domain/mathUtils.js';
-import { typeMapFromBreakdown } from '../domain/breakdownUtils.js';
+import { InvariantEngine } from './invariantEngine.js';
 
-const computeScore = (monthly, car, flight, electricity, food, waste, bus, train) => {
+const computeScore = (monthly, typeMap) => {
   let totalPenalty = 0;
   if (monthly > 50) {
     const over = clamp((monthly - 50) / (1000 - 50), 0, 1);
     totalPenalty += over * 50;
   }
-  totalPenalty += car.pct * 0.3;
-  totalPenalty += flight.pct * 0.5;
-  totalPenalty += electricity.pct * 0.2;
-  totalPenalty += food.pct * 0.15;
-  totalPenalty += waste.pct * 0.1;
+  const getPct = (type) => { const e = typeMap.get(type); return e ? e.pct : 0; };
+  totalPenalty += getPct('Car') * 0.3;
+  totalPenalty += getPct('Flight') * 0.5;
+  totalPenalty += getPct('Electricity') * 0.2;
+  totalPenalty += getPct('Food') * 0.15;
+  totalPenalty += getPct('Waste') * 0.1;
 
-  const publicPct = (bus.pct || 0) + (train.pct || 0);
+  const publicPct = getPct('Bus') + getPct('Train');
   const bonus = publicPct * 0.25;
 
   return { score: Math.round(clamp(100 - totalPenalty + bonus, 0, 100)), publicPct };
 };
 
-const computeTrend = (activities) => {
-  const months = aggregateByMonth(activities, 3);
-  if (months && months.length >= 2) {
-    const last = months[months.length - 1].value || 0;
-    const prev = months[months.length - 2].value || 0;
-    if (prev > 0) {
-      const diff = (prev - last) / prev;
+const computeTrend = (monthMap) => {
+  const keys = Array.from(monthMap.keys()).sort();
+  if (keys.length >= 2) {
+    const last = keys[keys.length - 1];
+    const prev = keys[keys.length - 2];
+    const lastVal = monthMap.get(last) || 0;
+    const prevVal = monthMap.get(prev) || 0;
+    if (prevVal > 0) {
+      const diff = (prevVal - lastVal) / prevVal;
       if (diff > 0.05) return 'Improving';
       if (diff < -0.03) return 'Declining';
     }
@@ -38,14 +41,7 @@ const computeTrend = (activities) => {
 const computeRating = (score) =>
   score >= 85 ? 'Excellent' : score >= 70 ? 'Good' : score >= 50 ? 'Fair' : 'Poor';
 
-/**
- * Calculate an overall carbon score (0-100), rating, trend, and top improvement.
- * Uses aggregate emissions, category breakdown, month-over-month trend,
- * and recommendation service to build a complete scorecard.
- * @param {Array} activities
- * @returns {{score:number, rating:string, trend:string, biggestContributor:string|null, positiveHabit:string|null, topImprovement:string, shortExplanation:string}}
- */
-export const calculateCarbonScore = (activities) => {
+export const calculateCarbonScore = (activities, precomputedFullAgg = null, precomputedBreakdown = null) => {
   if (!activities || activities.length === 0) {
     return {
       score: 0,
@@ -58,35 +54,28 @@ export const calculateCarbonScore = (activities) => {
     };
   }
 
-  const agg = aggregate(activities);
-  const monthly = agg.totals.monthly || 0;
-  const breakdown = breakdownByCategory(activities);
+  const fullAgg = precomputedFullAgg || computeFullAggregation(activities);
+  const monthly = fullAgg.monthlySum || 0;
+  const breakdown = precomputedBreakdown || breakdownByCategory(activities, fullAgg);
 
-  const typeMap = typeMapFromBreakdown(breakdown);
-  const get = (type) => typeMap.get(type) || { type, value: 0, pct: 0 };
-  const car = get('Car');
-  const flight = get('Flight');
-  const electricity = get('Electricity');
-  const food = get('Food');
-  const waste = get('Waste');
-  const bus = get('Bus');
-  const train = get('Train');
-
-  const { score, publicPct } = computeScore(monthly, car, flight, electricity, food, waste, bus, train);
+  const typeMap = new Map(breakdown.list.map(l => [l.type, l]));
+  const { score, publicPct } = computeScore(monthly, typeMap);
   const rating = computeRating(score);
-  const trend = computeTrend(activities);
+  const trend = computeTrend(fullAgg.monthMap);
   const biggestContributor = breakdown.list.length > 0 ? breakdown.list[0].type : null;
 
   let positiveHabit = null;
   if (publicPct >= 30) positiveHabit = 'High public transport usage';
   else if (monthly <= 50) positiveHabit = 'Low monthly emissions';
 
-  const recs = generateRecommendations(activities);
+  const recs = generateRecommendations(activities, breakdown, monthly);
   const top = recs && recs.length > 0 ? recs[0].suggestion : 'Review activity breakdown to find improvements';
 
   const shortExplanation = `Score calculated from monthly CO₂ (${monthly} kg) and activity mix. Biggest contributor: ${biggestContributor || 'N/A'}.`;
 
-  return { score, rating, trend, biggestContributor, positiveHabit, topImprovement: top, shortExplanation };
+  const result = { score, rating, trend, biggestContributor, positiveHabit, topImprovement: top, shortExplanation };
+  InvariantEngine.verify('scoreRange', result);
+  return result;
 };
 
 

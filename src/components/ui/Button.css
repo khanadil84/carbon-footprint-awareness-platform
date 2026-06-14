@@ -12,8 +12,9 @@
 }
 
 .eco-button:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 .eco-button {
   display: inline-flex;
@@ -29,7 +30,7 @@
   padding: 0.5rem 0.75rem;
 }
 .eco-button:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
   transform: none;
 }
@@ -141,4 +142,4 @@
 }
 
 /* Ensure keyboard focus is visible */
-.eco-button:focus-visible { outline: 3px solid rgba(16,185,129,0.18); outline-offset: 3px; }
+.eco-button:focus-visible { outline: 3px solid var(--brand-primary); outline-offset: 3px; }

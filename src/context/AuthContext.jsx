@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { authService } from '../services/mockAuthService';
 import { safeGetItem, safeSetItem, safeRemoveItem, safeGetJSON, safeSetJSON } from '../utils/storage.js';
 import { STORAGE_KEYS, SESSION_TIMEOUT_MINUTES } from '../config/securityConfig.js';
@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }) => {
     };
   }, [user]);
 
-  const login = async (email, password, rememberMe) => {
+  const login = useCallback(async (email, password, rememberMe) => {
     const response = await authService.login(email, password);
     setUser(response.user);
     if (rememberMe) {
@@ -61,24 +61,24 @@ export const AuthProvider = ({ children }) => {
       safeSetJSON(USER_KEY, response.user);
     }
     return response;
-  };
+  }, []);
 
-  const register = async (name, email, password) => {
+  const register = useCallback(async (name, email, password) => {
     const response = await authService.register(name, email, password);
     setUser(response.user);
     safeSetItem(TOKEN_KEY, response.token);
     safeSetJSON(USER_KEY, response.user);
     return response;
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null);
     safeRemoveItem(TOKEN_KEY);
     safeRemoveItem(USER_KEY);
-  };
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={useMemo(() => ({ user, loading, login, register, logout }), [user, loading, login, register, logout])}>
       {!loading && children}
     </AuthContext.Provider>
   );

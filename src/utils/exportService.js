@@ -1,4 +1,4 @@
-import { aggregate, breakdownByCategory } from './activityAnalytics.js';
+import { computeFullAggregation, breakdownByCategory } from './activityAnalytics.js';
 import { calculateCarbonScore } from './carbonScoreService.js';
 import { GoalService } from './goalService.js';
 import { AchievementService } from './achievementService.js';
@@ -33,29 +33,43 @@ const downloadCSV = (filename, csvContent) => {
 };
 
 const exportActivitiesCSV = (activities) => {
-  const headers = ['Date','Activity Type','Input Value','Estimated CO2','Category'];
-  const rows = activities.map(a => ({
-    Date: new Date(a.date).toLocaleString(),
-    'Activity Type': a.type,
-    'Input Value': a.value,
-    'Estimated CO2': a.co2,
-    Category: getCategoryForType(a.type)
-  }));
-  const csv = [headers.join(',')].concat(rows.map(r => headers.map(h => escapeCell(r[h])).join(','))).join('\n');
-  downloadCSV(`ecotrack_activities_${new Date().toISOString().slice(0,10)}.csv`, csv);
+  const headerLine = ['Date','Activity Type','Input Value','Estimated CO2','Category'].map(escapeCell).join(',');
+  const lines = new Array(activities.length + 1);
+  lines[0] = headerLine;
+  for (let i = 0; i < activities.length; i++) {
+    const a = activities[i];
+    lines[i + 1] = [
+      escapeCell(new Date(a.date).toLocaleString()),
+      escapeCell(a.type),
+      escapeCell(a.value),
+      escapeCell(a.co2),
+      escapeCell(getCategoryForType(a.type))
+    ].join(',');
+  }
+  downloadCSV(`ecotrack_activities_${new Date().toISOString().slice(0,10)}.csv`, lines.join('\n'));
+};
+
+const countUnlocked = (achievements) => {
+  let count = 0;
+  for (let i = 0; i < achievements.length; i++) {
+    if (achievements[i].unlocked) count++;
+  }
+  return count;
 };
 
 const buildReportData = (activities) => {
-  const agg = aggregate(activities || []);
+  const activitiesArr = activities || [];
   const goal = GoalService.loadGoal();
+  const full = computeFullAggregation(activitiesArr);
+  const breakdown = breakdownByCategory(activitiesArr, full);
   return {
-    totals: agg.totals || {},
-    scoreObj: calculateCarbonScore(activities || []),
+    totals: { today: full.todaySum, weekly: full.weeklySum, monthly: full.monthlySum, total: full.totalSum },
+    scoreObj: calculateCarbonScore(activitiesArr, full, breakdown),
     goal,
-    progress: GoalService.computeProgress(activities || [], goal),
-    breakdown: breakdownByCategory(activities || []),
-    achievements: AchievementService.evaluateAchievements(activities || [], goal).achievements || [],
-    recs: generateRecommendations(activities || [])
+    progress: GoalService.computeProgress(activitiesArr, goal, full),
+    breakdown,
+    achievements: AchievementService.evaluateAchievements(activitiesArr, goal, full).achievements || [],
+    recs: generateRecommendations(activitiesArr, breakdown, full.monthlySum)
   };
 };
 
@@ -78,14 +92,18 @@ const exportDashboardCSV = (activities) => {
     "Today's CO2": totals.today,
     'Highest Emission Category': breakdown.list && breakdown.list.length > 0 ? breakdown.list[0].type : '',
     'Number of Activities': activities.length,
-    'Number of Achievements': achievements.filter(a => a.unlocked).length,
+    'Number of Achievements': countUnlocked(achievements),
     'Top Recommendation': recs && recs.length > 0 ? recs[0].title : ''
   };
 
-  const headers = ['Key','Value'];
-  const rows = Object.keys(summary).map(k => ({ Key: k, Value: summary[k]}));
-  const csv = headers.join(',') + '\n' + rows.map(r => `${escapeCell(r.Key)},${escapeCell(r.Value)}`).join('\n');
-  downloadCSV(`ecotrack_dashboard_summary_${new Date().toISOString().slice(0,10)}.csv`, csv);
+  const headerLine = 'Key,Value';
+  const keys = Object.keys(summary);
+  const lines = new Array(keys.length + 1);
+  lines[0] = headerLine;
+  for (let i = 0; i < keys.length; i++) {
+    lines[i + 1] = `${escapeCell(keys[i])},${escapeCell(summary[keys[i]])}`;
+  }
+  downloadCSV(`ecotrack_dashboard_summary_${new Date().toISOString().slice(0,10)}.csv`, lines.join('\n'));
 };
 
 /**

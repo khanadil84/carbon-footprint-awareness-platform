@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
-import { ActivityService } from '../../utils/activityService';
+import { memo, useEffect, useState } from 'react';
+import { ActivityCache } from '../../utils/activityCache';
 
-export const MostRecentActivity = () => {
+export const MostRecentActivity = memo(() => {
   const [recent, setRecent] = useState(null);
 
   useEffect(() => {
-    const list = ActivityService.loadActivities();
+    const list = ActivityCache.getActivities();
     if (list && list.length > 0) setRecent(list[0]);
   }, []);
 
@@ -33,6 +33,6 @@ export const MostRecentActivity = () => {
       </div>
     </div>
   );
-};
+});
 
 export default MostRecentActivity;

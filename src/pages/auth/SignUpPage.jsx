@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User } from 'lucide-react';
 import { AuthLayout } from '../../components/layout/AuthLayout';
@@ -15,15 +15,16 @@ export const SignUpPage = () => {
   const [errors, setErrors] = useState({ name: '', email: '', password: '', submit: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const passwordStrength = checkPasswordStrength(formData.password);
+  const passwordStrength = useMemo(() => checkPasswordStrength(formData.password), [formData.password]);
 
-  const handleChange = (e) => {
+  const handleChange = useCallback((e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
-  };
+    setErrors(prev => {
+      if (prev[name]) return { ...prev, [name]: '' };
+      return prev;
+    });
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

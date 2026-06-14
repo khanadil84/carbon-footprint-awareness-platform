@@ -4,7 +4,7 @@ import { settings } from '../domain/validation.js';
 
 const STORAGE_KEY = STORAGE_KEYS.SETTINGS;
 
-const defaultSettings = () => ({
+const DEFAULT_SETTINGS = Object.freeze({
   units: 'metric',
   defaultView: 'overview',
   analyticsRange: 'monthly',
@@ -13,27 +13,28 @@ const defaultSettings = () => ({
   saveMode: 'auto'
 });
 
+const cloneDefaults = () => ({ ...DEFAULT_SETTINGS });
+
 const loadSettings = () => {
-  const merged = { ...defaultSettings(), ...safeGetJSON(STORAGE_KEY, {}) };
-  const validated = settings.isValid(merged);
-  return validated ?? defaultSettings();
+  const merged = Object.assign(cloneDefaults(), safeGetJSON(STORAGE_KEY, {}));
+  return settings.isValid(merged) ?? cloneDefaults();
 };
 
 const saveSettings = (settingsData) => {
-  const merged = { ...defaultSettings(), ...(settingsData || {}) };
-  const toSave = settings.isValid(merged) ?? defaultSettings();
+  const merged = settingsData ? Object.assign(cloneDefaults(), settingsData) : cloneDefaults();
+  const toSave = settings.isValid(merged) ?? cloneDefaults();
   safeSetJSON(STORAGE_KEY, toSave);
   return toSave;
 };
 
 const resetSettings = () => {
-  const defaults = defaultSettings();
+  const defaults = cloneDefaults();
   safeSetJSON(STORAGE_KEY, defaults);
   return defaults;
 };
 
 export const SettingsService = {
-  defaultSettings,
+  defaultSettings: cloneDefaults,
   loadSettings,
   saveSettings,
   resetSettings

@@ -1,12 +1,12 @@
 /* Dashboard styles - polished visual presentation */
 .dfp-welcome {
-  background: linear-gradient(90deg, rgba(16,185,129,0.12), rgba(6,95,70,0.06));
-  color: var(--text-inverse);
+  background: linear-gradient(90deg, rgba(16,185,129,0.20), rgba(6,95,70,0.12));
+  color: var(--text-primary);
   padding: calc(var(--spacing-6) + 0.5rem) 0;
 }
 .dfp-welcome__inner { display:flex; align-items:center; }
 .dfp-welcome__text h1 { font-size: var(--font-size-3xl); margin:0; line-height:1.05; font-weight:800; letter-spacing: -0.02em; }
-.dfp-welcome__email { color: rgba(255,255,255,0.95); margin-top:0.25rem; font-weight:var(--font-weight-medium); }
+.dfp-welcome__email { color: var(--text-accent); margin-top:0.25rem; font-weight:var(--font-weight-medium); }
 
 .dfp-dashboard { padding: calc(var(--spacing-6) - 0.5rem) 0; background: linear-gradient(180deg, var(--bg-secondary), rgba(255,255,255,0)); min-height: calc(100vh - 140px); }
 .dfp-grid { display:grid; gap: calc(var(--spacing-4) + 0.5rem); grid-template-columns: 1fr; }
@@ -79,7 +79,7 @@
 .dfp-most-recent h3 { margin:0 0 0.5rem 0; font-size: var(--font-size-md); }
 
 /* Focus styles for keyboard navigation (high-contrast outline) */
-select:focus, input:focus, button:focus { outline: 3px solid rgba(16,185,129,0.18); outline-offset: 2px; }
+select:focus-visible, input:focus-visible, button:focus-visible { outline: 3px solid var(--brand-primary); outline-offset: 2px; }
 
 /* Responsive tweaks for activity table */
 @media (max-width: 640px) {

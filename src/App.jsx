@@ -34,11 +34,12 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
         <Routes>
-          {/* Public Landing Page */}
           <Route path="/" element={<LandingPage />} />
           
-          {/* Auth Routes */}
           <Route path="/login" element={
             <PublicRoute>
               <LoginPage />
@@ -55,14 +56,12 @@ function App() {
             </PublicRoute>
           } />
           
-          {/* Protected Routes */}
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <DashboardPage />
             </ProtectedRoute>
           } />
           
-          {/* Catch-all redirect */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

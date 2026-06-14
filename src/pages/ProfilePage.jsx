@@ -3,10 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import { StatCard } from '../components/dashboard/StatCard';
 import { Button } from '../components/ui/Button';
-import { ActivityService } from '../utils/activityService';
-import { aggregate } from '../utils/activityAnalytics';
-import { calculateCarbonScore } from '../utils/carbonScoreService';
-import { AchievementService } from '../utils/achievementService';
+import { ActivityCache } from '../utils/activityCache';
 import { GoalService } from '../utils/goalService';
 import { STORAGE_KEYS } from '../config/securityConfig.js';
 import '../components/dashboard/dashboard.css';
@@ -25,30 +22,34 @@ export const ProfilePage = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [activities, setActivities] = useState([]);
+  const [totals, setTotals] = useState({ total: 0, weekly: 0, monthly: 0 });
   const [scoreMeta, setScoreMeta] = useState({});
   const [achievements, setAchievements] = useState([]);
   const [goalSummary, setGoalSummary] = useState(null);
 
   useEffect(() => {
     const load = () => {
-      const acts = ActivityService.loadActivities();
+      const acts = ActivityCache.getActivities();
       setActivities(acts);
-      setScoreMeta(calculateCarbonScore(acts));
+      const full = ActivityCache.getAggregation();
+      setTotals({ total: full.totalSum, weekly: full.weeklySum, monthly: full.monthlySum });
+      setScoreMeta(ActivityCache.getScoreAndMeta());
       const goal = GoalService.loadGoal();
-      setGoalSummary(GoalService.computeProgress(acts, goal));
-      const ach = AchievementService.evaluateAchievements(acts, goal);
+      setGoalSummary(ActivityCache.getGoalProgress(goal));
+      const ach = ActivityCache.getAchievements(goal);
       setAchievements(ach.achievements || []);
     };
     load();
     const onStorage = (e) => {
       const keys = [STORAGE_KEYS.ACTIVITIES, STORAGE_KEYS.GOAL, STORAGE_KEYS.ACHIEVEMENTS];
-      if (keys.includes(e.key)) load();
+      if (keys.includes(e.key)) {
+        ActivityCache.invalidate();
+        load();
+      }
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, []);
-
-  const agg = aggregate(activities || []);
 
   const handleSettings = () => {
     // If settings panel is present on the page, focus it; otherwise navigate to dashboard root
@@ -76,16 +77,16 @@ export const ProfilePage = () => {
 
         <div style={{ display:'flex', gap:'0.5rem' }}>
           <Button onClick={handleSettings} variant="outline">Settings</Button>
-          <Button onClick={handleLogout} variant="ghost">Log out</Button>
+          <Button onClick={handleLogout} variant="ghost" aria-label="Log out">Log out</Button>
         </div>
       </header>
 
-      <main style={{ marginTop: '1rem' }}>
+      <main id="main-content" style={{ marginTop: '1rem' }}>
         <div className="dfp-grid dfp-grid--stats" style={{ gap: '1rem' }}>
           <StatCard title="Carbon Score" value={scoreMeta.score || 0} description={scoreMeta.rating || '—'} />
-          <StatCard title="Total CO₂" value={agg.totals.total} unit="kg" />
-          <StatCard title="Weekly CO₂" value={agg.totals.weekly} unit="kg" />
-          <StatCard title="Monthly CO₂" value={agg.totals.monthly} unit="kg" />
+          <StatCard title="Total CO₂" value={totals.total} unit="kg" />
+          <StatCard title="Weekly CO₂" value={totals.weekly} unit="kg" />
+          <StatCard title="Monthly CO₂" value={totals.monthly} unit="kg" />
         </div>
 
         <div style={{ height: 'var(--spacing-6)' }} />
@@ -136,8 +137,8 @@ export const ProfilePage = () => {
           ) : (
             <div>
               <div>Total activities: {activities.length}</div>
-              <div>Total CO₂: {agg.totals.total} kg</div>
-              <div>Average per activity: {activities.length ? (agg.totals.total / activities.length).toFixed(3) : 0} kg</div>
+              <div>Total CO₂: {totals.total} kg</div>
+              <div>Average per activity: {activities.length ? (totals.total / activities.length).toFixed(3) : 0} kg</div>
               <div style={{ marginTop: '0.5rem', color:'var(--text-secondary)' }}>Personal insight: {scoreMeta.shortExplanation}</div>
             </div>
           )}
