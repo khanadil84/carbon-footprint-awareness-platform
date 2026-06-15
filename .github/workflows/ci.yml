@@ -105,7 +105,7 @@ jobs:
       - name: Timing Summary
         run: |
           echo "OS: ${{ matrix.os }}, Node: ${{ matrix.node }}"
-          echo "Build duration: ${{ fromJSON(steps.build.outputs.startTime) }}"
+          echo "Build duration: ${{ steps.build.outputs.startTime || 'N/A' }}"
 
   # ──────────────────────────────────────────────
   # Phase 3: Artifact — Upload Production Build
