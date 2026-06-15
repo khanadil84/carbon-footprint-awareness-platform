@@ -1,0 +1,136 @@
+name: Release Check
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  release-verify:
+    name: Verify Release (${{ matrix.os }} / Node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        node: [22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: 'npm'
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify Build Output
+        run: |
+          test -d dist/assets || (echo "Missing dist/assets" && exit 1)
+          test -f dist/index.html || (echo "Missing index.html" && exit 1)
+
+      - name: Dependency Audit
+        run: npm audit --audit-level=high
+
+      - name: Security Scan
+        run: node scripts/check-security.mjs
+
+      - name: Unit Tests
+        run: |
+          node tests/validation.unit.test.js
+          node tests/storage.unit.test.js
+          node tests/activityService.unit.test.js
+          node tests/analytics.unit.test.js
+          node tests/carbonScoreService.unit.test.js
+          node tests/goalService.unit.test.js
+          node tests/achievementService.unit.test.js
+          node tests/recommendationService.unit.test.js
+          node tests/settingsService.unit.test.js
+          node tests/exportService.unit.test.js
+
+      - name: Functional Tests
+        run: |
+          node tests/regression.test.js
+          node tests/fuzz.test.js
+          node tests/mutation.test.js
+          node tests/security.test.js
+          node tests/property.test.js
+          node tests/integration.test.js
+          node tests/accessibility.test.js
+
+      - name: Chaos Tests
+        run: node tests/chaos.test.js
+        env:
+          CHAOS_ROUNDS: '20'
+
+      - name: Consistency Tests
+        run: node tests/consistency.test.js
+
+      - name: Performance Tests
+        run: node tests/performance.test.js
+
+      - name: Coverage Gate
+        run: node scripts/check-coverage.mjs 60
+
+      - name: Bundle Budget Gate
+        run: node scripts/check-budget.mjs
+
+      - name: Benchmark Gate
+        run: node scripts/check-performance.mjs
+
+      - name: Reproducible Build
+        run: node scripts/check-reproducible.mjs
+
+      - name: Generate Dashboard
+        run: node scripts/generate-dashboard.mjs
+
+      - name: Generate Release Report
+        run: |
+          {
+            echo "# Release Verification Report"
+            echo ""
+            echo "Tag: ${{ github.ref_name }}"
+            echo "Commit: ${{ github.sha }}"
+            echo "OS: ${{ matrix.os }}"
+            echo "Node: ${{ matrix.node }}"
+            echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo ""
+            echo "## Gates Passed"
+            echo "- Lint"
+            echo "- Build"
+            echo "- Dependency Audit"
+            echo "- Security Scan"
+            echo "- Unit Tests (10 suites)"
+            echo "- Functional Tests (7 suites)"
+            echo "- Chaos Tests (20 rounds)"
+            echo "- Consistency Tests"
+            echo "- Performance Tests"
+            echo "- Coverage Gate (≥60%)"
+            echo "- Bundle Budget Gate"
+            echo "- Benchmark Gate"
+            echo "- Reproducible Build"
+          } > release-report.md
+          cat release-report.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-report-${{ matrix.os }}
+          path: |
+            release-report.md
+            engineering-dashboard.json
+            engineering-dashboard.md
+          retention-days: 90
+
+      - name: Final Verification
+        run: echo "All release checks passed for ${{ github.ref_name }}"

@@ -22,3 +22,17 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# CI/CD generated artifacts
+npm-audit-report.json
+coverage-summary.txt
+coverage-report.json
+budget-baseline.json
+benchmark-baseline.json
+benchmark-results.md
+engineering-dashboard.json
+engineering-dashboard.md
+.build-*-hash.json
+
+# Test reports
+test-reports/

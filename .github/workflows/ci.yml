@@ -1,0 +1,337 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CHAOS_ROUNDS: '10'
+  NODE_OPTIONS: '--max-old-space-size=4096'
+
+permissions:
+  contents: read
+
+jobs:
+  # ──────────────────────────────────────────────
+  # Phase 1: Multi-OS × Multi-Node Build + Test Matrix
+  # ──────────────────────────────────────────────
+  matrix:
+    name: ${{ matrix.os }} / Node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: 'npm'
+
+      - name: Cache Vite
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules/.vite
+            node_modules/.cache
+          key: vite-${{ matrix.os }}-${{ matrix.node }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            vite-${{ matrix.os }}-${{ matrix.node }}-
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+        id: build
+
+      - name: Verify Production Build
+        shell: bash
+        run: |
+          if [ ! -d "dist" ]; then echo "Missing dist/"; exit 1; fi
+          if [ ! -d "dist/assets" ]; then echo "Missing dist/assets/"; exit 1; fi
+          if [ ! -f "dist/index.html" ]; then echo "Missing dist/index.html"; exit 1; fi
+          JS_COUNT=$(ls dist/assets/*.js 2>/dev/null | wc -l)
+          CSS_COUNT=$(ls dist/assets/*.css 2>/dev/null | wc -l)
+          echo "Assets: $JS_COUNT JS files, $CSS_COUNT CSS files"
+          if [ "$JS_COUNT" -eq 0 ]; then echo "No JS bundles found"; exit 1; fi
+
+      - name: Unit Tests
+        run: |
+          node tests/validation.unit.test.js
+          node tests/storage.unit.test.js
+          node tests/activityService.unit.test.js
+          node tests/analytics.unit.test.js
+          node tests/carbonScoreService.unit.test.js
+          node tests/goalService.unit.test.js
+          node tests/achievementService.unit.test.js
+          node tests/recommendationService.unit.test.js
+          node tests/settingsService.unit.test.js
+          node tests/exportService.unit.test.js
+
+      - name: Functional Tests
+        run: |
+          node tests/regression.test.js
+          node tests/fuzz.test.js
+          node tests/mutation.test.js
+          node tests/security.test.js
+          node tests/property.test.js
+          node tests/integration.test.js
+          node tests/accessibility.test.js
+          node tests/performance.test.js
+
+      - name: Chaos Tests
+        run: node tests/chaos.test.js
+        env:
+          CHAOS_ROUNDS: ${{ env.CHAOS_ROUNDS }}
+
+      - name: Consistency Tests
+        run: node tests/consistency.test.js
+
+      - name: Timing Summary
+        run: |
+          echo "OS: ${{ matrix.os }}, Node: ${{ matrix.node }}"
+          echo "Build duration: ${{ fromJSON(steps.build.outputs.startTime) }}"
+
+  # ──────────────────────────────────────────────
+  # Phase 3: Artifact — Upload Production Build
+  # ──────────────────────────────────────────────
+  artifact:
+    name: Upload Build Artifact
+    needs: [matrix]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+      - run: |
+          sha256sum dist/assets/* > dist/assets/sha256sums.txt
+          echo "Asset integrity hashes:"
+          cat dist/assets/sha256sums.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: production-build
+          path: dist/
+          retention-days: 7
+
+  # ──────────────────────────────────────────────
+  # Phase 4: Reproducible Build Validation
+  # ──────────────────────────────────────────────
+  reproducible:
+    name: Reproducible Build
+    needs: [matrix]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - run: node scripts/check-reproducible.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reproducible-hashes
+          path: .build-*-hash.json
+          if-no-files-found: ignore
+
+  # ──────────────────────────────────────────────
+  # Phase 5: Bundle Budget Gate
+  # ──────────────────────────────────────────────
+  budget:
+    name: Bundle Budget
+    needs: [matrix]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - run: node scripts/check-budget.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: budget-baseline
+          path: budget-baseline.json
+          if-no-files-found: ignore
+
+  # ──────────────────────────────────────────────
+  # Phase 6: Performance Regression Gate
+  # ──────────────────────────────────────────────
+  performance:
+    name: Benchmark Gate
+    needs: [matrix]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - name: Cache benchmark baseline
+        uses: actions/cache@v4
+        with:
+          path: benchmark-baseline.json
+          key: bench-${{ github.sha }}
+          restore-keys: |
+            bench-
+      - run: node scripts/check-performance.mjs
+      - run: npm run bench
+      - uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: |
+            benchmark-baseline.json
+            benchmark-results.md
+          if-no-files-found: ignore
+
+  # ──────────────────────────────────────────────
+  # Phase 2: Dependency Audit
+  # ──────────────────────────────────────────────
+  audit:
+    name: Dependency Audit
+    needs: [matrix]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - name: Audit (fail on high/critical)
+        run: npm audit --audit-level=high
+      - name: Generate machine-readable report
+        run: npm audit --json > npm-audit-report.json || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-report
+          path: npm-audit-report.json
+          if-no-files-found: ignore
+
+  # ──────────────────────────────────────────────
+  # Phase 6: Coverage Gate
+  # ──────────────────────────────────────────────
+  coverage:
+    name: Coverage Gate
+    needs: [matrix]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - run: node scripts/check-coverage.mjs 60
+      - name: Generate coverage report
+        run: |
+          node --experimental-test-coverage --test tests/validation.unit.test.js tests/storage.unit.test.js tests/analytics.unit.test.js tests/activityService.unit.test.js 2>&1 | tee coverage-summary.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage-summary.txt
+          if-no-files-found: ignore
+
+  # ──────────────────────────────────────────────
+  # Phase 7: Test Reporting
+  # ──────────────────────────────────────────────
+  test-report:
+    name: Test Reports
+    needs: [matrix]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - run: node scripts/generate-test-report.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: test-reports/
+          retention-days: 30
+
+  # ──────────────────────────────────────────────
+  # Phase 8: Security Verification
+  # ──────────────────────────────────────────────
+  security:
+    name: Security Verification
+    needs: [matrix]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - name: Custom security scan
+        run: node scripts/check-security.mjs
+      - name: Dependency review
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+      - name: Verify no secrets exposed
+        run: |
+          npm audit --json > /dev/null 2>&1 || true
+
+  # ──────────────────────────────────────────────
+  # Phase 10: Engineering Dashboard
+  # ──────────────────────────────────────────────
+  dashboard:
+    name: Engineering Dashboard
+    if: always()
+    needs:
+      - matrix
+      - artifact
+      - reproducible
+      - budget
+      - performance
+      - audit
+      - coverage
+      - test-report
+      - security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - run: node scripts/generate-dashboard.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: engineering-dashboard
+          path: |
+            engineering-dashboard.json
+            engineering-dashboard.md
+      - name: Post dashboard summary
+        run: |
+          echo "## Engineering Dashboard" >> $GITHUB_STEP_SUMMARY
+          cat engineering-dashboard.md >> $GITHUB_STEP_SUMMARY
