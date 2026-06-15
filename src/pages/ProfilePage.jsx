@@ -5,17 +5,23 @@ import { StatCard } from '../components/dashboard/StatCard';
 import { Button } from '../components/ui/Button';
 import { ActivityCache } from '../utils/activityCache';
 import { GoalService } from '../utils/goalService';
-import { STORAGE_KEYS } from '../config/securityConfig.js';
+import { STORAGE_KEYS } from '../config/securityConfig';
+import { useStorageSync } from '../utils/useStorageSync';
 import '../components/dashboard/dashboard.css';
 import './profile.css';
 
-const Avatar = ({ name }) => {
-  const initials = (name || '').split(' ').map(s => s[0]).filter(Boolean).slice(0,2).join('').toUpperCase() || '?';
-  return (
-    <div className="profile-avatar" aria-hidden>
-      {initials}
-    </div>
-  );
+const formatDate = (dateString) =>
+  dateString ? new Date(dateString).toLocaleDateString() : '\u2014';
+
+const UserAvatar = ({ name }) => {
+  const initials = (name || '')
+    .split(' ')
+    .map(part => part[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || '?';
+  return <div className="profile-avatar" aria-hidden>{initials}</div>;
 };
 
 export const ProfilePage = () => {
@@ -27,35 +33,33 @@ export const ProfilePage = () => {
   const [achievements, setAchievements] = useState([]);
   const [goalSummary, setGoalSummary] = useState(null);
 
+  const loadData = () => {
+    const loadedActivities = ActivityCache.getActivities();
+    setActivities(loadedActivities);
+    const aggregation = ActivityCache.getAggregation();
+    setTotals({ total: aggregation.totalSum, weekly: aggregation.weeklySum, monthly: aggregation.monthlySum });
+    setScoreMeta(ActivityCache.getScoreAndMeta());
+    const goal = GoalService.loadGoal();
+    setGoalSummary(ActivityCache.getGoalProgress(goal));
+    const achievementResult = ActivityCache.getAchievements(goal);
+    setAchievements(achievementResult.achievements || []);
+  };
+
   useEffect(() => {
-    const load = () => {
-      const acts = ActivityCache.getActivities();
-      setActivities(acts);
-      const full = ActivityCache.getAggregation();
-      setTotals({ total: full.totalSum, weekly: full.weeklySum, monthly: full.monthlySum });
-      setScoreMeta(ActivityCache.getScoreAndMeta());
-      const goal = GoalService.loadGoal();
-      setGoalSummary(ActivityCache.getGoalProgress(goal));
-      const ach = ActivityCache.getAchievements(goal);
-      setAchievements(ach.achievements || []);
-    };
-    load();
-    const onStorage = (e) => {
-      const keys = [STORAGE_KEYS.ACTIVITIES, STORAGE_KEYS.GOAL, STORAGE_KEYS.ACHIEVEMENTS];
-      if (keys.includes(e.key)) {
-        ActivityCache.invalidate();
-        load();
-      }
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    loadData();
   }, []);
 
-  const handleSettings = () => {
-    // If settings panel is present on the page, focus it; otherwise navigate to dashboard root
-    const el = document.getElementById('settings-heading');
-    if (el) { el.tabIndex = -1; el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); }
-    else navigate('/');
+  useStorageSync([STORAGE_KEYS.ACTIVITIES, STORAGE_KEYS.GOAL, STORAGE_KEYS.ACHIEVEMENTS], loadData);
+
+  const navigateToSettings = () => {
+    const settingsElement = document.getElementById('settings-heading');
+    if (settingsElement) {
+      settingsElement.tabIndex = -1;
+      settingsElement.focus();
+      settingsElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      navigate('/');
+    }
   };
 
   const handleLogout = () => {
@@ -65,28 +69,29 @@ export const ProfilePage = () => {
 
   return (
     <div className="container" style={{ padding: '1rem 0' }}>
-      <header style={{ display:'flex', gap:'1rem', alignItems:'center', justifyContent:'space-between' }}>
-        <div style={{ display:'flex', gap:'1rem', alignItems:'center' }}>
-          <Avatar name={user?.name || user?.email} />
+      <header style={{ display: 'flex', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <UserAvatar name={user?.name || user?.email} />
           <div>
-            <h1 style={{ margin:0 }}>{user?.name || user?.email}</h1>
-            <div style={{ color:'var(--text-secondary)' }}>{user?.email}</div>
-            <div style={{ color:'var(--text-secondary)', fontSize:'0.9rem' }}>Joined: {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : '—'}</div>
+            <h1 style={{ margin: 0 }}>{user?.name || user?.email}</h1>
+            <div style={{ color: 'var(--text-secondary)' }}>{user?.email}</div>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+              Joined: {formatDate(user?.createdAt)}
+            </div>
           </div>
         </div>
-
-        <div style={{ display:'flex', gap:'0.5rem' }}>
-          <Button onClick={handleSettings} variant="outline">Settings</Button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <Button onClick={navigateToSettings} variant="outline">Settings</Button>
           <Button onClick={handleLogout} variant="ghost" aria-label="Log out">Log out</Button>
         </div>
       </header>
 
       <main id="main-content" style={{ marginTop: '1rem' }}>
         <div className="dfp-grid dfp-grid--stats" style={{ gap: '1rem' }}>
-          <StatCard title="Carbon Score" value={scoreMeta.score || 0} description={scoreMeta.rating || '—'} />
-          <StatCard title="Total CO₂" value={totals.total} unit="kg" />
-          <StatCard title="Weekly CO₂" value={totals.weekly} unit="kg" />
-          <StatCard title="Monthly CO₂" value={totals.monthly} unit="kg" />
+          <StatCard title="Carbon Score" value={scoreMeta.score || 0} description={scoreMeta.rating || '\u2014'} />
+          <StatCard title="Total CO\u2082" value={totals.total} unit="kg" />
+          <StatCard title="Weekly CO\u2082" value={totals.weekly} unit="kg" />
+          <StatCard title="Monthly CO\u2082" value={totals.monthly} unit="kg" />
         </div>
 
         <div style={{ height: 'var(--spacing-6)' }} />
@@ -96,13 +101,15 @@ export const ProfilePage = () => {
           {achievements.length === 0 ? (
             <p className="dfp-placeholder">No achievements yet.</p>
           ) : (
-            <div style={{ display:'flex', gap:'0.5rem', flexWrap:'wrap' }}>
-              {achievements.filter(a=>a.unlocked).map(a => (
-                <div key={a.id} className="badge earned" style={{ display:'flex', alignItems:'center', gap:'0.5rem', padding:'0.5rem' }}>
-                  <div className="badge-icon">{a.icon}</div>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {achievements.filter(a => a.unlocked).map(achievement => (
+                <div key={achievement.id} className="badge earned" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem' }}>
+                  <div className="badge-icon">{achievement.icon}</div>
                   <div>
-                    <div style={{ fontWeight:700 }}>{a.title}</div>
-                    <div style={{ fontSize:'0.85rem', color:'var(--text-secondary)' }}>{a.unlockedDate ? new Date(a.unlockedDate).toLocaleDateString() : ''}</div>
+                    <div style={{ fontWeight: 700 }}>{achievement.title}</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      {formatDate(achievement.unlockedDate)}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -118,10 +125,10 @@ export const ProfilePage = () => {
             <div>
               <div>Status: {goalSummary.status}</div>
               <div>Current month: {goalSummary.current} kg</div>
-              <div>Target: {goalSummary.target ? `${goalSummary.target} kg` : '—'}</div>
+              <div>Target: {goalSummary.target ? `${goalSummary.target} kg` : '\u2014'}</div>
               <div>Projection: {goalSummary.projection} kg</div>
               <div>Days remaining: {goalSummary.daysRemaining}</div>
-              <div style={{ marginTop: '0.5rem', color:'var(--text-secondary)' }}>{goalSummary.insight}</div>
+              <div style={{ marginTop: '0.5rem', color: 'var(--text-secondary)' }}>{goalSummary.insight}</div>
             </div>
           ) : (
             <p className="dfp-placeholder">No goal set yet.</p>
@@ -137,9 +144,9 @@ export const ProfilePage = () => {
           ) : (
             <div>
               <div>Total activities: {activities.length}</div>
-              <div>Total CO₂: {totals.total} kg</div>
+              <div>Total CO\u2082: {totals.total} kg</div>
               <div>Average per activity: {activities.length ? (totals.total / activities.length).toFixed(3) : 0} kg</div>
-              <div style={{ marginTop: '0.5rem', color:'var(--text-secondary)' }}>Personal insight: {scoreMeta.shortExplanation}</div>
+              <div style={{ marginTop: '0.5rem', color: 'var(--text-secondary)' }}>Personal insight: {scoreMeta.shortExplanation}</div>
             </div>
           )}
         </section>

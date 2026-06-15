@@ -1,8 +1,9 @@
 import { sanitizeNumber, sanitizeString, activity } from '../domain/validation.js';
 import { calculateEmission } from '../domain/emissionCalculator.js';
+import { ACTIVITY_TYPES } from '../config/constants.js';
 import { Telemetry } from './telemetry.js';
 
-const VALID_TYPES = ['Car', 'Bus', 'Train', 'Flight', 'Electricity', 'Food', 'Waste'];
+const VALID_TYPES = ACTIVITY_TYPES;
 
 export const repairId = (record) => {
   if (record.id && typeof record.id === 'string') return record.id;
@@ -11,7 +12,8 @@ export const repairId = (record) => {
 };
 
 export const repairCo2 = (record) => {
-  if (record.co2 !== undefined && record.co2 !== null && Number.isFinite(Number(record.co2))) return Number(record.co2);
+  const hasCo2 = record.co2 !== undefined && record.co2 !== null && Number.isFinite(Number(record.co2));
+  if (hasCo2) return Number(record.co2);
   Telemetry.emit('self_heal_repair');
   const type = activity.isValidType(sanitizeString(record.type)) ? sanitizeString(record.type) : null;
   const value = sanitizeNumber(record.value, null);
@@ -21,8 +23,8 @@ export const repairCo2 = (record) => {
 
 export const repairDate = (record) => {
   if (record.date && typeof record.date === 'string') {
-    const d = new Date(record.date);
-    if (!isNaN(d.getTime())) return record.date;
+    const date = new Date(record.date);
+    if (!isNaN(date.getTime())) return record.date;
   }
   Telemetry.emit('self_heal_repair');
   return new Date().toISOString();
@@ -36,39 +38,38 @@ export const repairType = (type) => {
 };
 
 export const repairValue = (value) => {
-  const n = sanitizeNumber(value, null);
-  if (n !== null && Number.isFinite(n) && n > 0) return n;
+  const numericValue = sanitizeNumber(value, null);
+  if (numericValue !== null && Number.isFinite(numericValue) && numericValue > 0) return numericValue;
   Telemetry.emit('self_heal_repair');
   return null;
 };
 
-export const repairActivity = (a) => {
-  if (!a || typeof a !== 'object') return null;
-  const type = repairType(a.type);
+export const repairActivity = (record) => {
+  if (!record || typeof record !== 'object') return null;
+  const type = repairType(record.type);
   if (!type) return null;
-  const value = repairValue(a.value);
+  const value = repairValue(record.value);
   if (value === null) return null;
   return {
-    id: repairId(a),
-    date: repairDate(a),
+    id: repairId(record),
+    date: repairDate(record),
     type,
     value: Number(value),
-    co2: repairCo2(a)
+    co2: repairCo2(record)
   };
 };
 
-export const deduplicateEntries = (list) => {
-  if (!Array.isArray(list)) return [];
+export const deduplicateEntries = (entries) => {
+  if (!Array.isArray(entries)) return [];
   const seen = new Set();
   const result = [];
   let dedupCount = 0;
-  for (let i = 0; i < list.length; i++) {
-    const a = list[i];
-    if (!a || typeof a !== 'object') continue;
-    const key = `${a.type}|${a.value}|${a.date}|${a.co2}`;
-    if (seen.has(key)) { dedupCount++; continue; }
-    seen.add(key);
-    result.push(a);
+  for (const entry of entries) {
+    if (!entry || typeof entry !== 'object') continue;
+    const fingerprint = `${entry.type}|${entry.value}|${entry.date}|${entry.co2}`;
+    if (seen.has(fingerprint)) { dedupCount++; continue; }
+    seen.add(fingerprint);
+    result.push(entry);
   }
   if (dedupCount > 0) Telemetry.emit('dedup_prevented');
   return result;
@@ -76,18 +77,18 @@ export const deduplicateEntries = (list) => {
 
 export const repairSettings = (settings, defaults) => {
   if (!settings || typeof settings !== 'object') return { ...defaults };
-  const out = {};
+  const result = {};
   let repaired = false;
   for (const key of Object.keys(defaults)) {
     if (settings[key] === undefined || settings[key] === null) {
-      out[key] = defaults[key];
+      result[key] = defaults[key];
       repaired = true;
     } else {
-      out[key] = settings[key];
+      result[key] = settings[key];
     }
   }
   if (repaired) Telemetry.emit('self_heal_repair');
-  return out;
+  return result;
 };
 
 export const rebuildAggregation = () => {
@@ -95,17 +96,16 @@ export const rebuildAggregation = () => {
   return null;
 };
 
-export const selfHealActivities = (list) => {
-  if (!Array.isArray(list)) return [];
+export const selfHealActivities = (activities) => {
+  if (!Array.isArray(activities)) return [];
   const result = [];
   let repairCount = 0;
-  for (let i = 0; i < list.length; i++) {
-    const a = list[i];
-    if (activity.isValidRecord(a)) {
-      result.push(a);
+  for (const record of activities) {
+    if (activity.isValidRecord(record)) {
+      result.push(record);
     } else {
-      const fixed = repairActivity(a);
-      if (fixed) { result.push(fixed); repairCount++; }
+      const repaired = repairActivity(record);
+      if (repaired) { result.push(repaired); repairCount++; }
     }
   }
   if (repairCount > 0) {

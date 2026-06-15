@@ -1,4 +1,3 @@
-// React import not required with the new JSX transform
 import './HeroSection.css';
 
 export const AboutSection = () => {
@@ -17,5 +16,3 @@ export const AboutSection = () => {
     </section>
   );
 };
-
-export default AboutSection;

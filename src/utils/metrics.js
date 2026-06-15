@@ -17,22 +17,22 @@ export const Metrics = {
     };
   },
 
-  highlight: (state) => {
-    const d = Metrics.diagnostics(state);
+  highlight: () => {
+    const diagnostics = Metrics.diagnostics();
     const lines = [
       '=== Operational Metrics ===',
-      `Health Score: ${d.health.healthScore}/100 (${d.health.invariantPassed ? 'ALL INVARIANTS PASSED' : 'INVARIANTS FAILING'})`,
-      `Recovery Count: ${d.recovered}`,
-      `Total Telemetry Events: ${d.telemetry.totalEvents}`,
-      `Cache Hits: ${d.performance.cacheHits || 0}, Misses: ${d.performance.cacheMisses || 0}`,
-      `Full Recomputes: ${d.performance.fullRecomputes || 0}, Incremental: ${d.performance.incrementalUpdates || 0}`,
+      `Health Score: ${diagnostics.health.healthScore}/100 (${diagnostics.health.invariantPassed ? 'ALL INVARIANTS PASSED' : 'INVARIANTS FAILING'})`,
+      `Recovery Count: ${diagnostics.recovered}`,
+      `Total Telemetry Events: ${diagnostics.telemetry.totalEvents}`,
+      `Cache Hits: ${diagnostics.performance.cacheHits || 0}, Misses: ${diagnostics.performance.cacheMisses || 0}`,
+      `Full Recomputes: ${diagnostics.performance.fullRecomputes || 0}, Incremental: ${diagnostics.performance.incrementalUpdates || 0}`,
       '--- Invariants ---'
     ];
-    for (const inv of d.invariants) {
-      lines.push(`  ${inv.name}: ${inv.pass ? 'PASS' : 'FAIL'} (${inv.detail})`);
+    for (const entry of diagnostics.invariants) {
+      lines.push(`  ${entry.name}: ${entry.pass ? 'PASS' : 'FAIL'} (${entry.detail})`);
     }
     lines.push('--- Telemetry Breakdown ---');
-    const events = d.health.telemetry.events || {};
+    const events = diagnostics.health.telemetry.events || {};
     for (const [name, count] of Object.entries(events)) {
       if (count > 0) lines.push(`  ${name}: ${count}`);
     }

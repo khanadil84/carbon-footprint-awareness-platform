@@ -1,40 +1,35 @@
-import { memo, useEffect, useState } from 'react';
-
+import { memo, useCallback, useEffect, useState } from 'react';
 import { ExportService } from '../../utils/exportService';
 import { ActivityCache } from '../../utils/activityCache';
 import { STORAGE_KEYS } from '../../config/securityConfig.js';
 import './print.css';
 
-const countUnlocked = (achievements) => {
-  let count = 0;
-  for (let i = 0; i < achievements.length; i++) {
-    if (achievements[i].unlocked) count++;
-  }
-  return count;
-};
+const STORAGE_KEYS_LIST = [STORAGE_KEYS.ACTIVITIES, STORAGE_KEYS.GOAL, STORAGE_KEYS.ACHIEVEMENTS];
 
 export const PrintableReport = () => {
   const [report, setReport] = useState(null);
 
-  const refresh = () => {
+  const refresh = useCallback(() => {
     const activities = ActivityCache.getActivities();
-    const data = ExportService.makeReportData(activities);
-    setReport(data);
-  };
+    setReport(ExportService.makeReportData(activities));
+  }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
 
   useEffect(() => {
-    refresh();
     const onStorage = (e) => {
-      if ([STORAGE_KEYS.ACTIVITIES, STORAGE_KEYS.GOAL, STORAGE_KEYS.ACHIEVEMENTS].includes(e.key)) {
+      if (STORAGE_KEYS_LIST.includes(e.key)) {
         ActivityCache.invalidate();
         refresh();
       }
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, []);
+  }, [refresh]);
 
   if (!report) return null;
+
+  const unlockedCount = report.achievements.filter(a => a.unlocked).length;
 
   return (
     <div id="eco-print-report" className="eco-print-report" aria-hidden>
@@ -52,9 +47,9 @@ export const PrintableReport = () => {
           <dt>Monthly CO₂</dt><dd>{report.totals.monthly} kg</dd>
           <dt>Weekly CO₂</dt><dd>{report.totals.weekly} kg</dd>
           <dt>Today's CO₂</dt><dd>{report.totals.today} kg</dd>
-          <dt>Highest Emission Category</dt><dd>{report.breakdown.list && report.breakdown.list.length>0?report.breakdown.list[0].type:'—'}</dd>
+          <dt>Highest Emission Category</dt><dd>{report.breakdown.list && report.breakdown.list.length > 0 ? report.breakdown.list[0].type : '—'}</dd>
           <dt>Number of Activities</dt><dd>{report.recentActivities.length}</dd>
-          <dt>Achievements Unlocked</dt><dd>{countUnlocked(report.achievements)}</dd>
+          <dt>Achievements Unlocked</dt><dd>{unlockedCount}</dd>
         </dl>
       </section>
 
@@ -75,7 +70,7 @@ export const PrintableReport = () => {
       <section className="print-recommendations">
         <h2>Recommendations</h2>
         <ol>
-          {report.recommendations.slice(0,5).map((r, i) => (
+          {report.recommendations.slice(0, 5).map((r, i) => (
             <li key={i}><strong>{r.title}</strong>: {r.description} — Suggestion: {r.suggestion}</li>
           ))}
         </ol>

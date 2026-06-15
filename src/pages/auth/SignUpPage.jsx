@@ -5,32 +5,83 @@ import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../context/useAuth';
-import { auth, checkPasswordStrength } from '../../domain/validation.js';
+import { auth, checkPasswordStrength } from '../../domain/validation';
+
+const PasswordStrengthIndicator = ({ password }) => {
+  const passwordStrength = useMemo(() => checkPasswordStrength(password), [password]);
+  if (!password) return null;
+
+  const ruleChecks = [
+    { label: 'Min 8 characters', test: (pw) => pw.length >= 8 },
+    { label: 'One uppercase letter', test: (pw) => /[A-Z]/.test(pw) },
+    { label: 'One lowercase letter', test: (pw) => /[a-z]/.test(pw) },
+    { label: 'One number', test: (pw) => /[0-9]/.test(pw) },
+    { label: 'One special character', test: (pw) => /[^A-Za-z0-9]/.test(pw) },
+  ];
+
+  return (
+    <div style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Password Strength:</span>
+        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: passwordStrength.color }}>{passwordStrength.label}</span>
+      </div>
+      <div style={{ height: '4px', display: 'flex', gap: '4px', borderRadius: '2px', overflow: 'hidden' }}>
+        {[1, 2, 3, 4].map(level => (
+          <div
+            key={level}
+            style={{
+              flex: 1,
+              backgroundColor: passwordStrength.score >= level ? passwordStrength.color : 'var(--color-gray-200)',
+              transition: 'background-color 0.3s ease'
+            }}
+          />
+        ))}
+      </div>
+      <ul style={{ margin: '8px 0 0', paddingLeft: '20px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+        {ruleChecks.map(rule => (
+          <li key={rule.label} style={{ color: rule.test(password) ? 'var(--brand-primary)' : 'inherit' }}>
+            {rule.label}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+const ErrorBanner = ({ message }) => {
+  if (!message) return null;
+  return (
+    <div className="input-error-message" role="alert" style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#fee2e2', borderRadius: '0.25rem' }}>
+      {message}
+    </div>
+  );
+};
 
 export const SignUpPage = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
-  
+
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   const [errors, setErrors] = useState({ name: '', email: '', password: '', submit: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const passwordStrength = useMemo(() => checkPasswordStrength(formData.password), [formData.password]);
 
-  const handleChange = useCallback((e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    setErrors(prev => {
-      if (prev[name]) return { ...prev, [name]: '' };
-      return prev;
+  const handleChange = useCallback((event) => {
+    const { name, value } = event.target;
+    setFormData(previous => ({ ...previous, [name]: value }));
+    setErrors(previous => {
+      if (previous[name]) return { ...previous, [name]: '' };
+      return previous;
     });
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
-    const { name, email, errors, hasError } = auth.validateForm(formData);
-    if (hasError) { setErrors(errors); return; }
+    const { name, email, errors: validationErrors, hasError } = auth.validateForm(formData);
+    if (hasError) {
+      setErrors(validationErrors);
+      return;
+    }
 
     setIsSubmitting(true);
     setErrors({ name: '', email: '', password: '', submit: '' });
@@ -38,24 +89,20 @@ export const SignUpPage = () => {
     try {
       await register(name, email, formData.password);
       navigate('/dashboard');
-    } catch (err) {
-      setErrors(prev => ({ ...prev, submit: err.message || 'Failed to create account' }));
+    } catch (error) {
+      setErrors(previous => ({ ...previous, submit: error.message || 'Failed to create account' }));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <AuthLayout 
-      title="Create an account" 
+    <AuthLayout
+      title="Create an account"
       subtitle="Start measuring and reducing your footprint today."
     >
       <form onSubmit={handleSubmit} className="auth-form" noValidate>
-        {errors.submit && (
-          <div className="input-error-message" role="alert" style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#fee2e2', borderRadius: '0.25rem' }}>
-            {errors.submit}
-          </div>
-        )}
+        <ErrorBanner message={errors.submit} />
 
         <Input
           id="name"
@@ -90,7 +137,7 @@ export const SignUpPage = () => {
           name="password"
           type="password"
           label="Password"
-          placeholder="••••••••"
+          placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
           icon={Lock}
           value={formData.password}
           onChange={handleChange}
@@ -99,38 +146,11 @@ export const SignUpPage = () => {
           required
         />
 
-        {/* Password Strength Indicator */}
-        {formData.password && (
-          <div style={{ marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Password Strength:</span>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: passwordStrength.color }}>{passwordStrength.label}</span>
-            </div>
-            <div style={{ height: '4px', display: 'flex', gap: '4px', borderRadius: '2px', overflow: 'hidden' }}>
-              {[1, 2, 3, 4].map(level => (
-                <div 
-                  key={level} 
-                  style={{ 
-                    flex: 1, 
-                    backgroundColor: passwordStrength.score >= level ? passwordStrength.color : 'var(--color-gray-200)',
-                    transition: 'background-color 0.3s ease'
-                  }} 
-                />
-              ))}
-            </div>
-            <ul style={{ margin: '8px 0 0', paddingLeft: '20px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-              <li style={{ color: formData.password.length >= 8 ? 'var(--brand-primary)' : 'inherit' }}>Min 8 characters</li>
-              <li style={{ color: /[A-Z]/.test(formData.password) ? 'var(--brand-primary)' : 'inherit' }}>One uppercase letter</li>
-              <li style={{ color: /[a-z]/.test(formData.password) ? 'var(--brand-primary)' : 'inherit' }}>One lowercase letter</li>
-              <li style={{ color: /[0-9]/.test(formData.password) ? 'var(--brand-primary)' : 'inherit' }}>One number</li>
-              <li style={{ color: /[^A-Za-z0-9]/.test(formData.password) ? 'var(--brand-primary)' : 'inherit' }}>One special character</li>
-            </ul>
-          </div>
-        )}
+        <PasswordStrengthIndicator password={formData.password} />
 
-        <Button 
-          type="submit" 
-          variant="primary" 
+        <Button
+          type="submit"
+          variant="primary"
           className="auth-submit-btn"
           disabled={isSubmitting}
         >

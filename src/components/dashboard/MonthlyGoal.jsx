@@ -5,22 +5,24 @@ import { sanitizeNumber } from '../../domain/validation.js';
 import { ActivityCache } from '../../utils/activityCache';
 import { Button } from '../ui/Button';
 
+const STORAGE_KEYS_LIST = [STORAGE_KEYS.ACTIVITIES, STORAGE_KEYS.GOAL];
+
 export const MonthlyGoal = () => {
-  const [goal, setGoal] = useState(GoalService.loadGoal());
+  const [goal, setGoal] = useState(() => GoalService.loadGoal());
   const [progress, setProgress] = useState(null);
   const [editing, setEditing] = useState(false);
   const [input, setInput] = useState(goal ? goal.targetKg : '');
 
   const refresh = useCallback((g) => {
     const full = ActivityCache.getAggregation();
-    const p = GoalService.computeProgress(null, g, full);
-    setProgress(p);
+    setProgress(GoalService.computeProgress(null, g, full));
   }, []);
 
+  useEffect(() => { refresh(goal); }, [goal, refresh]);
+
   useEffect(() => {
-    refresh(goal);
     const onStorage = (e) => {
-      if ([STORAGE_KEYS.ACTIVITIES, STORAGE_KEYS.GOAL].includes(e.key)) {
+      if (STORAGE_KEYS_LIST.includes(e.key)) {
         const newGoal = GoalService.loadGoal();
         setGoal(newGoal);
         refresh(newGoal);
@@ -28,7 +30,7 @@ export const MonthlyGoal = () => {
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, [goal, refresh]);
+  }, [refresh]);
 
   const handleSave = () => {
     const val = sanitizeNumber(input, null);

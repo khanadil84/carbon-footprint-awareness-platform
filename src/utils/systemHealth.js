@@ -8,97 +8,107 @@ import { InvariantEngine } from './invariantEngine.js';
 import { Telemetry } from './telemetry.js';
 import { STORAGE_KEYS } from '../config/securityConfig.js';
 
+const MAX_HISTORY = 100;
+
 let lastVerification = null;
 let recoveryCount = 0;
-let healthHistory = [];
+const healthHistory = [];
 
-const ok = (component, detail) => ({ component, status: 'healthy', detail, score: 1, checkedAt: Date.now() });
-const degraded = (component, detail) => ({ component, status: 'degraded', detail, score: 0.5, checkedAt: Date.now() });
-const failed = (component, detail) => ({ component, status: 'failed', detail, score: 0, checkedAt: Date.now() });
+const checkResult = (status, component, detail) => ({
+  component,
+  status,
+  detail,
+  score: status === 'healthy' ? 1 : status === 'degraded' ? 0.5 : 0,
+  checkedAt: Date.now()
+});
+
+const healthy = (component, detail) => checkResult('healthy', component, detail);
+const degraded = (component, detail) => checkResult('degraded', component, detail);
+const failed = (component, detail) => checkResult('failed', component, detail);
 
 export const SystemHealthService = {
   checkStorage: () => {
     try {
       safeGetJSON(STORAGE_KEYS.ACTIVITIES, null, null, true);
-      const writeOk = safeSetJSON('__health_check__', { ts: Date.now() });
+      const writeSuccessful = safeSetJSON('__health_check__', { ts: Date.now() });
       safeGetJSON('__health_check__', null);
-      if (!writeOk) return degraded('storage', 'write failed');
-      return ok('storage', `readable, writable`);
-    } catch (e) {
-      return failed('storage', e.message);
+      if (!writeSuccessful) return degraded('storage', 'write failed');
+      return healthy('storage', 'readable, writable');
+    } catch (error) {
+      return failed('storage', error.message);
     }
   },
 
   checkAggregation: (activities) => {
-    if (!activities || activities.length === 0) return ok('aggregation', 'no data');
+    if (!activities || activities.length === 0) return healthy('aggregation', 'no data');
     try {
-      const agg = computeFullAggregation(activities);
-      const inv = InvariantEngine.verify('aggregationConsistency', activities, agg);
-      if (!inv.pass) return degraded('aggregation', inv.detail);
-      return ok('aggregation', `${activities.length} activities, ${agg.totalSum.toFixed(1)} kg total`);
-    } catch (e) {
-      return failed('aggregation', e.message);
+      const aggregation = computeFullAggregation(activities);
+      const invariantResult = InvariantEngine.verify('aggregationConsistency', activities, aggregation);
+      if (!invariantResult.pass) return degraded('aggregation', invariantResult.detail);
+      return healthy('aggregation', `${activities.length} activities, ${aggregation.totalSum.toFixed(1)} kg total`);
+    } catch (error) {
+      return failed('aggregation', error.message);
     }
   },
 
   checkCache: (cacheSnapshot) => {
-    if (!cacheSnapshot) return ok('cache', 'not initialized');
+    if (!cacheSnapshot) return healthy('cache', 'not initialized');
     const { cachedActivities, cachedAggregation } = cacheSnapshot;
     if (!cachedActivities) return degraded('cache', 'no cached activities');
     if (cachedAggregation) {
-      const inv = InvariantEngine.verify('aggregationConsistency', cachedActivities, cachedAggregation);
-      if (!inv.pass) return degraded('cache', inv.detail);
+      const invariantResult = InvariantEngine.verify('aggregationConsistency', cachedActivities, cachedAggregation);
+      if (!invariantResult.pass) return degraded('cache', invariantResult.detail);
     }
-    return ok('cache', `${cachedActivities.length} entries cached`);
+    return healthy('cache', `${cachedActivities.length} entries cached`);
   },
 
   checkRecommendations: (activities) => {
     try {
-      const recs = generateRecommendations(activities || []);
-      if (!Array.isArray(recs)) return degraded('recommendations', 'non-array result');
-      return ok('recommendations', `${recs.length} recommendations`);
-    } catch (e) {
-      return failed('recommendations', e.message);
+      const recommendations = generateRecommendations(activities || []);
+      if (!Array.isArray(recommendations)) return degraded('recommendations', 'non-array result');
+      return healthy('recommendations', `${recommendations.length} recommendations`);
+    } catch (error) {
+      return failed('recommendations', error.message);
     }
   },
 
   checkAchievements: (activities, goal) => {
     try {
-      const r = AchievementService.evaluateAchievements(activities || [], goal || null);
-      if (!r || !Array.isArray(r.achievements)) return degraded('achievements', 'invalid result');
-      return ok('achievements', `${r.achievements.filter(a => a.unlocked).length} unlocked`);
-    } catch (e) {
-      return failed('achievements', e.message);
+      const result = AchievementService.evaluateAchievements(activities || [], goal || null);
+      if (!result || !Array.isArray(result.achievements)) return degraded('achievements', 'invalid result');
+      return healthy('achievements', `${result.achievements.filter(a => a.unlocked).length} unlocked`);
+    } catch (error) {
+      return failed('achievements', error.message);
     }
   },
 
   checkGoal: () => {
     try {
       const goal = GoalService.loadGoal();
-      const inv = InvariantEngine.verify('goalConsistency', goal);
-      if (!inv.pass) return degraded('goal', inv.detail);
-      return ok('goal', goal ? `target ${goal.targetKg} kg` : 'no goal set');
-    } catch (e) {
-      return failed('goal', e.message);
+      const invariantResult = InvariantEngine.verify('goalConsistency', goal);
+      if (!invariantResult.pass) return degraded('goal', invariantResult.detail);
+      return healthy('goal', goal ? `target ${goal.targetKg} kg` : 'no goal set');
+    } catch (error) {
+      return failed('goal', error.message);
     }
   },
 
   checkSettings: () => {
     try {
-      const s = SettingsService.loadSettings();
-      if (!s || typeof s !== 'object') return degraded('settings', 'invalid settings object');
-      return ok('settings', 'valid');
-    } catch (e) {
-      return failed('settings', e.message);
+      const settings = SettingsService.loadSettings();
+      if (!settings || typeof settings !== 'object') return degraded('settings', 'invalid settings object');
+      return healthy('settings', 'valid');
+    } catch (error) {
+      return failed('settings', error.message);
     }
   },
 
   checkValidation: (activities) => {
-    if (!activities || activities.length === 0) return ok('validation', 'no data');
-    const inv = InvariantEngine.verifySystemInvariants(activities, null, null, null);
-    const allPass = Object.values(inv).every(r => r.pass);
+    if (!activities || activities.length === 0) return healthy('validation', 'no data');
+    const invariants = InvariantEngine.verifySystemInvariants(activities, null, null, null);
+    const allPass = Object.values(invariants).every(result => result.pass);
     if (!allPass) return degraded('validation', 'invariant failures detected');
-    return ok('validation', `${activities.length} records valid`);
+    return healthy('validation', `${activities.length} records valid`);
   },
 
   overall: (state) => {
@@ -112,12 +122,13 @@ export const SystemHealthService = {
       SystemHealthService.checkSettings(),
       SystemHealthService.checkValidation(state.activities)
     ];
-    const totalScore = checks.reduce((s, c) => s + c.score, 0);
+
+    const totalScore = checks.reduce((sum, check) => sum + check.score, 0);
     const maxScore = checks.length;
     const healthScore = Math.round((totalScore / maxScore) * 100);
-    const failedChecks = checks.filter(c => c.status === 'failed').length;
-    const degradedChecks = checks.filter(c => c.status === 'degraded').length;
-    const overallStatus = failedChecks > 0 ? 'degraded' : degradedChecks > 0 ? 'degraded' : 'healthy';
+    const hasFailed = checks.some(check => check.status === 'failed');
+    const hasDegraded = checks.some(check => check.status === 'degraded');
+    const overallStatus = hasFailed ? 'degraded' : hasDegraded ? 'degraded' : 'healthy';
 
     lastVerification = Date.now();
 
@@ -134,7 +145,7 @@ export const SystemHealthService = {
     };
 
     healthHistory.push({ ts: lastVerification, healthScore, status: overallStatus });
-    if (healthHistory.length > 100) healthHistory.shift();
+    if (healthHistory.length > MAX_HISTORY) healthHistory.shift();
 
     return report;
   },
@@ -145,12 +156,16 @@ export const SystemHealthService = {
       SystemHealthService.checkGoal(),
       SystemHealthService.checkSettings()
     ];
-    const totalScore = checks.reduce((s, c) => s + c.score, 0);
+    const totalScore = checks.reduce((sum, check) => sum + check.score, 0);
     return Math.round((totalScore / checks.length) * 100);
   },
 
   recoveryCount: () => recoveryCount,
-  incrementRecovery: () => { recoveryCount++; Telemetry.emit('recovery_complete'); },
+
+  incrementRecovery: () => {
+    recoveryCount++;
+    Telemetry.emit('recovery_complete');
+  },
 
   lastVerification: () => lastVerification,
 

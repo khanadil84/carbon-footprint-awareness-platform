@@ -1,33 +1,30 @@
 const counters = new Map();
 
-const ensure = (name) => { if (!counters.has(name)) counters.set(name, 0); };
-
 export const Telemetry = {
   emit: (name) => {
-    ensure(name);
-    counters.set(name, counters.get(name) + 1);
+    counters.set(name, (counters.get(name) || 0) + 1);
   },
 
   count: (name) => counters.get(name) || 0,
 
   counts: () => {
-    const out = {};
-    for (const [k, v] of counters) out[k] = v;
-    return out;
+    const snapshot = {};
+    for (const [key, value] of counters) snapshot[key] = value;
+    return snapshot;
   },
 
   summary: () => {
-    const c = Telemetry.counts();
+    const events = Telemetry.counts();
     return {
-      totalEvents: Object.values(c).reduce((s, v) => s + v, 0),
-      events: c,
+      totalEvents: Object.values(events).reduce((sum, count) => sum + count, 0),
+      events,
       byCategory: {
-        storage: (c.storage_corruption_detected || 0) + (c.storage_repaired || 0),
-        cache: (c.cache_invalidated || 0) + (c.cache_rebuilt || 0),
-        retry: (c.retry_attempt || 0) + (c.retry_success || 0) + (c.retry_failed || 0),
-        recovery: c.recovery_complete || 0,
-        invariant: (c.invariant_failure || 0) + (c.invariant_pass || 0),
-        selfHeal: c.self_heal_repair || 0
+        storage: (events.storage_corruption_detected || 0) + (events.storage_repaired || 0),
+        cache: (events.cache_invalidated || 0) + (events.cache_rebuilt || 0),
+        retry: (events.retry_attempt || 0) + (events.retry_success || 0) + (events.retry_failed || 0),
+        recovery: events.recovery_complete || 0,
+        invariant: (events.invariant_failure || 0) + (events.invariant_pass || 0),
+        selfHeal: events.self_heal_repair || 0
       }
     };
   },

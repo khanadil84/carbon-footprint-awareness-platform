@@ -5,7 +5,7 @@ import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { authService } from '../../services/mockAuthService';
-import { validateEmail } from '../../domain/validation.js';
+import { validateEmail } from '../../domain/validation';
 
 export const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');
@@ -13,11 +13,14 @@ export const ForgotPasswordPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
-    const emailError = validateEmail(email);
-    if (emailError) { setError(emailError); return; }
+    const validationError = validateEmail(email);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
 
     setIsSubmitting(true);
     setError('');
@@ -40,7 +43,7 @@ export const ForgotPasswordPage = () => {
             <CheckCircle aria-hidden="true" />
           </div>
           <p style={{ color: 'var(--text-secondary)' }}>
-            We've sent a password reset link to <strong>{email}</strong>.
+            We&apos;ve sent a password reset link to <strong>{email}</strong>.
           </p>
           <Link to="/login" style={{ width: '100%' }}>
             <Button variant="primary" className="auth-submit-btn">Return to login</Button>
@@ -51,8 +54,8 @@ export const ForgotPasswordPage = () => {
   }
 
   return (
-    <AuthLayout 
-      title="Reset password" 
+    <AuthLayout
+      title="Reset password"
       subtitle="Enter your email and we'll send you a link to reset your password."
     >
       <form onSubmit={handleSubmit} className="auth-form" noValidate>
@@ -70,8 +73,8 @@ export const ForgotPasswordPage = () => {
           placeholder="you@example.com"
           icon={Mail}
           value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
+          onChange={(event) => {
+            setEmail(event.target.value);
             if (error) setError('');
           }}
           error={error}
@@ -79,9 +82,9 @@ export const ForgotPasswordPage = () => {
           required
         />
 
-        <Button 
-          type="submit" 
-          variant="primary" 
+        <Button
+          type="submit"
+          variant="primary"
           className="auth-submit-btn"
           disabled={isSubmitting}
         >

@@ -1,18 +1,6 @@
 import { Perf } from '../utils/perf.js';
 
 const sliceHistories = new Map();
-const MAX_HISTORY = 100;
-
-const record = (name, duration) => {
-  if (!sliceHistories.has(name)) {
-    sliceHistories.set(name, []);
-  }
-  const history = sliceHistories.get(name);
-  history.push(duration);
-  if (history.length > MAX_HISTORY) {
-    history.shift();
-  }
-};
 
 export const PerformanceMonitor = {
   start(name) {
@@ -20,31 +8,31 @@ export const PerformanceMonitor = {
   },
 
   end(name) {
-    const duration = Perf.end(name);
-    if (duration !== undefined) {
-      record(name, duration);
-    }
-    return duration;
+    Perf.end(name);
+    const stats = this.getStats(name);
+    return stats ? stats.avg : undefined;
   },
 
   getStats(name) {
     const history = sliceHistories.get(name);
     if (!history || history.length === 0) return null;
+
     let sum = 0;
-    let min = Infinity;
-    let max = -Infinity;
-    for (let i = 0; i < history.length; i++) {
-      const v = history[i];
-      sum += v;
-      if (v < min) min = v;
-      if (v > max) max = v;
+    let minValue = Infinity;
+    let maxValue = -Infinity;
+
+    for (const value of history) {
+      sum += value;
+      if (value < minValue) minValue = value;
+      if (value > maxValue) maxValue = value;
     }
+
     return {
       count: history.length,
       total: sum,
       avg: sum / history.length,
-      min,
-      max
+      min: minValue,
+      max: maxValue
     };
   },
 

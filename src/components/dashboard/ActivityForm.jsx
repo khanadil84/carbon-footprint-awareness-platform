@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '../ui/Button';
 import { ActivityCache } from '../../utils/activityCache';
-import { sanitizeNumber, activity } from '../../domain/validation.js';
+import { sanitizeNumber, activity as activityValidation } from '../../domain/validation.js';
 import { ACTIVITY_OPTIONS } from '../../config/constants.js';
 
 export const ActivityForm = ({ onAdd }) => {
@@ -12,19 +12,19 @@ export const ActivityForm = ({ onAdd }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     const num = sanitizeNumber(value, null);
-    if (!activity.isValidValue(num)) {
+    if (!activityValidation.isValidValue(num)) {
       setError('Please enter a valid number greater than 0');
       return;
     }
-    if (!activity.isValidType(type)) {
+    if (!activityValidation.isValidType(type)) {
       setError('Please select a valid activity type');
       return;
     }
     try {
-      const activity = ActivityCache.addActivity({ type, value: num });
+      const entry = ActivityCache.addActivity({ type, value: num });
       setValue('');
       setError('');
-      if (onAdd) onAdd(activity);
+      if (onAdd) onAdd(entry);
     } catch (err) {
       setError(err.message || 'Failed to add activity');
     }

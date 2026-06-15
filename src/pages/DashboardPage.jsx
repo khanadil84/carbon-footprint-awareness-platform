@@ -5,10 +5,12 @@ import { useAuth } from '../context/useAuth';
 import { Button } from '../components/ui/Button';
 import { StatCard } from '../components/dashboard/StatCard';
 import { WelcomeSection } from '../components/dashboard/WelcomeSection';
-// RecentActivity import removed (not used in this view)
 import { MostRecentActivity } from '../components/dashboard/MostRecentActivity';
+import { ActivityCache } from '../utils/activityCache';
+import { SettingsService } from '../utils/settingsService';
+import { STORAGE_KEYS } from '../config/securityConfig';
+import { useStorageSync } from '../utils/useStorageSync';
 
-// Lazy-load heavier dashboard widgets to improve initial rendering performance
 const ActivityHistory = lazy(() => import('../components/dashboard/ActivityHistory'));
 const AnalyticsSection = lazy(() => import('../components/dashboard/AnalyticsSection'));
 const AIRecommendations = lazy(() => import('../components/dashboard/AIRecommendations'));
@@ -18,12 +20,8 @@ const PrintableReport = lazy(() => import('../components/dashboard/PrintableRepo
 const MonthlyGoal = lazy(() => import('../components/dashboard/MonthlyGoal'));
 const SettingsPanel = lazy(() => import('../components/layout/SettingsPanel'));
 import '../components/dashboard/dashboard.css';
-import { ActivityCache } from '../utils/activityCache';
-import { SettingsService } from '../utils/settingsService';
-import { STORAGE_KEYS } from '../config/securityConfig.js';
 
 export const DashboardPage = () => {
-
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -32,53 +30,46 @@ export const DashboardPage = () => {
   const [score, setScore] = useState(0);
   const [carbonMeta, setCarbonMeta] = useState({});
 
-  const handleLogout = useCallback(() => {
-    logout();
-    navigate('/');
-  }, [logout, navigate]);
-
   const refreshAll = useCallback(() => {
-    const l = ActivityCache.getActivities();
-    setActivities(l);
-    const agg = ActivityCache.getAggregation();
-    setTotals({ today: agg.todaySum, weekly: agg.weeklySum, monthly: agg.monthlySum, total: agg.totalSum });
-    const cs = ActivityCache.getScoreAndMeta();
-    setScore(cs.score);
-    setCarbonMeta(cs);
+    const loadedActivities = ActivityCache.getActivities();
+    setActivities(loadedActivities);
+    const aggregation = ActivityCache.getAggregation();
+    setTotals({
+      today: aggregation.todaySum,
+      weekly: aggregation.weeklySum,
+      monthly: aggregation.monthlySum,
+      total: aggregation.totalSum
+    });
+    const scoreAndMeta = ActivityCache.getScoreAndMeta();
+    setScore(scoreAndMeta.score);
+    setCarbonMeta(scoreAndMeta);
   }, []);
+
   const settings = useMemo(() => SettingsService.loadSettings(), []);
 
   useEffect(() => {
     refreshAll();
 
-    try {
-      const map = {
-        overview: 'dfp-welcome-heading',
-        analytics: 'dfp-analytics-heading',
-        history: 'activity-history-heading'
-      };
-      const id = map[settings && settings.defaultView] || map.overview;
-      const el = document.getElementById(id);
-      if (el) {
-        el.tabIndex = -1;
-        el.focus();
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    } catch (e) {
-      console.warn('Failed to apply default view', e);
+    const viewHeadings = {
+      overview: 'dfp-welcome-heading',
+      analytics: 'dfp-analytics-heading',
+      history: 'activity-history-heading'
+    };
+    const targetId = viewHeadings[settings?.defaultView] || viewHeadings.overview;
+    const targetElement = document.getElementById(targetId);
+    if (targetElement) {
+      targetElement.tabIndex = -1;
+      targetElement.focus();
+      targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [refreshAll, settings]);
 
-  useEffect(() => {
-    const onStorage = (e) => {
-      if (e.key === STORAGE_KEYS.ACTIVITIES) {
-        ActivityCache.invalidate();
-        refreshAll();
-      }
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, [refreshAll]);
+  useStorageSync([STORAGE_KEYS.ACTIVITIES], refreshAll);
+
+  const handleLogout = useCallback(() => {
+    logout();
+    navigate('/');
+  }, [logout, navigate]);
 
   if (!user) return null;
 
@@ -103,7 +94,7 @@ export const DashboardPage = () => {
       <main className="container dfp-dashboard">
         <div className="dfp-grid dfp-grid--stats">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <StatCard title="Carbon Score" value={score} description={score >= 75 ? 'Good — keep it up' : 'Keep improving'} ariaLabel="Carbon score" />
+            <StatCard title="Carbon Score" value={score} description={score >= 75 ? 'Good \u2014 keep it up' : 'Keep improving'} ariaLabel="Carbon score" />
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <span className="carbon-badge" style={{ padding: '0.25rem 0.5rem', borderRadius: '999px', background: 'linear-gradient(90deg,var(--color-emerald-50),var(--color-teal-100))', color: 'var(--brand-primary)', fontWeight: 700 }}>{carbonMeta.rating || '\u2014'}</span>
               <span className="carbon-trend" style={{ color: 'var(--text-secondary)' }}>{carbonMeta.trend ? `Trend: ${carbonMeta.trend}` : ''}</span>

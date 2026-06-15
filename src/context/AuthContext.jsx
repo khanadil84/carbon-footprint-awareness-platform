@@ -83,5 +83,3 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
-// `useAuth` moved to `src/context/useAuth.js` to keep this file exporting only components.

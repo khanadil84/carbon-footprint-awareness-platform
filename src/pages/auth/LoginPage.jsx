@@ -5,30 +5,30 @@ import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../context/useAuth';
-import { validateEmail, validatePassword, sanitizeString } from '../../domain/validation.js';
+import { validateEmail, validatePassword, sanitizeString } from '../../domain/validation';
 
 export const LoginPage = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
-  
+
   const [formData, setFormData] = useState({ email: '', password: '', rememberMe: false });
   const [errors, setErrors] = useState({ email: '', password: '', submit: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = useCallback((e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
+  const handleChange = useCallback((event) => {
+    const { name, value, type, checked } = event.target;
+    setFormData(previous => ({
+      ...previous,
       [name]: type === 'checkbox' ? checked : value
     }));
-    setErrors(prev => {
-      if (prev[name]) return { ...prev, [name]: '' };
-      return prev;
+    setErrors(previous => {
+      if (previous[name]) return { ...previous, [name]: '' };
+      return previous;
     });
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
     const email = sanitizeString(formData.email);
     const password = typeof formData.password === 'string' ? formData.password.trim() : formData.password;
@@ -46,16 +46,16 @@ export const LoginPage = () => {
     try {
       await login(email, password, formData.rememberMe);
       navigate('/dashboard');
-    } catch (err) {
-      setErrors(prev => ({ ...prev, submit: err.message || 'Failed to login' }));
+    } catch (error) {
+      setErrors(previous => ({ ...previous, submit: error.message || 'Failed to login' }));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <AuthLayout 
-      title="Welcome back" 
+    <AuthLayout
+      title="Welcome back"
       subtitle="Enter your details to access your dashboard."
     >
       <form onSubmit={handleSubmit} className="auth-form" noValidate>
@@ -84,7 +84,7 @@ export const LoginPage = () => {
           name="password"
           type="password"
           label="Password"
-          placeholder="••••••••"
+          placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
           icon={Lock}
           value={formData.password}
           onChange={handleChange}
@@ -95,9 +95,9 @@ export const LoginPage = () => {
 
         <div className="auth-form-actions">
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-            <input 
+            <input
               id="rememberMe"
-              type="checkbox" 
+              type="checkbox"
               name="rememberMe"
               checked={formData.rememberMe}
               onChange={handleChange}
@@ -108,9 +108,9 @@ export const LoginPage = () => {
           <Link to="/forgot-password" className="auth-link">Forgot password?</Link>
         </div>
 
-        <Button 
-          type="submit" 
-          variant="primary" 
+        <Button
+          type="submit"
+          variant="primary"
           className="auth-submit-btn"
           disabled={isSubmitting}
         >
@@ -119,7 +119,7 @@ export const LoginPage = () => {
       </form>
 
       <p className="auth-redirect">
-        Don't have an account? <Link to="/signup" className="auth-link">Sign up</Link>
+        Don&apos;t have an account? <Link to="/signup" className="auth-link">Sign up</Link>
       </p>
     </AuthLayout>
   );

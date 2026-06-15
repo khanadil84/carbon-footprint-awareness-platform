@@ -1,4 +1,3 @@
-// React import not required with the new JSX transform
 import { Leaf, Globe, Mail, MessageSquare } from 'lucide-react';
 import './Footer.css';
 

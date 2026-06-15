@@ -1,35 +1,52 @@
-import { memo, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { ActivityCache } from '../../utils/activityCache';
 import { GoalService } from '../../utils/goalService';
 import { STORAGE_KEYS } from '../../config/securityConfig.js';
 
+const STORAGE_KEYS_LIST = [STORAGE_KEYS.ACTIVITIES, STORAGE_KEYS.GOAL, STORAGE_KEYS.ACHIEVEMENTS];
+
+const BadgeCard = ({ achievement, isLocked }) => (
+  <div key={achievement.id} className={`badge ${isLocked ? 'locked' : 'earned'}`} title={isLocked ? undefined : achievement.description} aria-label={isLocked ? `${achievement.title} locked` : `${achievement.title} unlocked. ${achievement.description}`}>
+    {isLocked ? (
+      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <div className="badge-icon" aria-hidden>{achievement.icon}</div>
+        <div>
+          <div className="badge-title">{achievement.title}</div>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{achievement.progress?.hint || achievement.description}</div>
+        </div>
+      </div>
+    ) : (
+      <>
+        <div className="badge-icon" aria-hidden>{achievement.icon}</div>
+        <div className="badge-title">{achievement.title}</div>
+      </>
+    )}
+  </div>
+);
+
 export const Badges = () => {
   const [data, setData] = useState({ achievements: [], recent: null });
 
-  const refresh = () => {
+  const refresh = useCallback(() => {
     const goal = GoalService.loadGoal();
-    const res = ActivityCache.getAchievements(goal);
-    setData(res);
-  };
+    setData(ActivityCache.getAchievements(goal));
+  }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
 
   useEffect(() => {
-    refresh();
     const onStorage = (e) => {
-      if ([STORAGE_KEYS.ACTIVITIES, STORAGE_KEYS.GOAL, STORAGE_KEYS.ACHIEVEMENTS].includes(e.key)) {
+      if (STORAGE_KEYS_LIST.includes(e.key)) {
         ActivityCache.invalidate();
         refresh();
       }
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, []);
+  }, [refresh]);
 
-  const earned = [];
-  const locked = [];
-  for (let i = 0; i < data.achievements.length; i++) {
-    const a = data.achievements[i];
-    (a.unlocked ? earned : locked).push(a);
-  }
+  const earned = data.achievements.filter(a => a.unlocked);
+  const locked = data.achievements.filter(a => !a.unlocked);
 
   return (
     <section className="dfp-badges" aria-labelledby="dfp-badges-heading">
@@ -43,10 +60,7 @@ export const Badges = () => {
           <div>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               {earned.map(a => (
-                <div key={a.id} className="badge earned" title={a.description} aria-label={`${a.title} unlocked. ${a.description}`}>
-                  <div className="badge-icon" aria-hidden>{a.icon}</div>
-                  <div className="badge-title">{a.title}</div>
-                </div>
+                <BadgeCard key={a.id} achievement={a} isLocked={false} />
               ))}
             </div>
             {data.recent && (
@@ -62,15 +76,7 @@ export const Badges = () => {
             <h3 style={{ margin: '0 0 0.5rem 0' }}>Locked badges</h3>
             <div style={{ display: 'grid', gap: '0.5rem' }}>
               {locked.map(a => (
-                <div key={a.id} className="badge locked" aria-label={`${a.title} locked`}>
-                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                    <div className="badge-icon" aria-hidden>{a.icon}</div>
-                    <div>
-                      <div className="badge-title">{a.title}</div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{a.progress?.hint || a.description}</div>
-                    </div>
-                  </div>
-                </div>
+                <BadgeCard key={a.id} achievement={a} isLocked={true} />
               ))}
             </div>
           </div>

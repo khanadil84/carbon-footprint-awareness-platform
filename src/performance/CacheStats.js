@@ -1,7 +1,7 @@
 import { Perf } from '../utils/perf.js';
 import { ActivityCache } from '../utils/activityCache.js';
 
-const estimateMapSize = (map) => {
+const estimateMapMemory = (map) => {
   if (!map) return 0;
   let bytes = 0;
   for (const [key, value] of map) {
@@ -11,43 +11,45 @@ const estimateMapSize = (map) => {
   return bytes;
 };
 
-const estimateActivitySize = (activity) => {
+const estimateActivityMemory = (activity) => {
   if (!activity) return 0;
   let bytes = 64;
   for (const key of Object.keys(activity)) {
-    const val = activity[key];
+    const value = activity[key];
     bytes += key.length * 2;
-    bytes += typeof val === 'string' ? val.length * 2 : 8;
+    bytes += typeof value === 'string' ? value.length * 2 : 8;
   }
   return bytes;
 };
 
 export const CacheStats = {
   snapshot() {
-    const agg = ActivityCache.getAggregation();
+    const aggregation = ActivityCache.getAggregation();
     const activities = ActivityCache.getActivities();
     const perf = Perf.report();
 
-    const activityBytes = activities ? activities.reduce((sum, a) => sum + estimateActivitySize(a), 0) : 0;
-    const indexBytes = agg ? (
-      estimateMapSize(agg.byId) +
-      estimateMapSize(agg.byType) +
-      estimateMapSize(agg.byMonth) +
-      estimateMapSize(agg.byCategory) +
-      estimateMapSize(agg.dayMap) +
-      estimateMapSize(agg.monthMap)
+    const activityMemory = activities
+      ? activities.reduce((sum, activity) => sum + estimateActivityMemory(activity), 0)
+      : 0;
+
+    const indexMemory = aggregation ? (
+      estimateMapMemory(aggregation.byId) +
+      estimateMapMemory(aggregation.byType) +
+      estimateMapMemory(aggregation.byMonth) +
+      estimateMapMemory(aggregation.byCategory) +
+      estimateMapMemory(aggregation.dayMap) +
+      estimateMapMemory(aggregation.monthMap)
     ) : 0;
 
-    const hitRate = perf.cacheHits + perf.cacheMisses === 0
-      ? 0
-      : perf.cacheHits / (perf.cacheHits + perf.cacheMisses);
+    const totalRequests = perf.cacheHits + perf.cacheMisses;
+    const hitRate = totalRequests === 0 ? 0 : perf.cacheHits / totalRequests;
 
     return {
       activityCount: activities ? activities.length : 0,
       memoryEstimate: {
-        activities: activityBytes,
-        indexes: indexBytes,
-        total: activityBytes + indexBytes,
+        activities: activityMemory,
+        indexes: indexMemory,
+        total: activityMemory + indexMemory,
       },
       hitRate,
       fullRecomputes: perf.fullRecomputes || 0,

@@ -1,5 +1,8 @@
 import { Perf } from '../utils/perf.js';
 
+const MAX_VALUES = 100;
+const MAX_TICKS = 60;
+
 const metricCounters = new Map();
 const metricValues = new Map();
 const tickHistory = [];
@@ -15,7 +18,7 @@ export const MetricsCollector = {
     }
     const values = metricValues.get(name);
     values.push(value);
-    if (values.length > 100) {
+    if (values.length > MAX_VALUES) {
       values.shift();
     }
   },
@@ -27,7 +30,7 @@ export const MetricsCollector = {
       metrics: Object.fromEntries(metricCounters),
     };
     tickHistory.push(snapshot);
-    if (tickHistory.length > 60) {
+    if (tickHistory.length > MAX_TICKS) {
       tickHistory.shift();
     }
   },
@@ -37,34 +40,33 @@ export const MetricsCollector = {
   },
 
   getCacheHitRate() {
-    const r = Perf.report();
-    const hits = r.cacheHits || 0;
-    const misses = r.cacheMisses || 0;
+    const report = Perf.report();
+    const hits = report.cacheHits || 0;
+    const misses = report.cacheMisses || 0;
     const total = hits + misses;
     return total === 0 ? 0 : hits / total;
   },
 
-  getSelectorReuseRate() {
-    const r = Perf.report();
-    const selectors = r.selectorCacheSize || 0;
-    return selectors;
+  getSelectorCacheSize() {
+    const report = Perf.report();
+    return report.selectorCacheSize || 0;
   },
 
   report() {
     const perf = Perf.report();
-    const hitRate = this.getCacheHitRate();
-    const total = (perf.cacheHits || 0) + (perf.cacheMisses || 0);
+    const hits = perf.cacheHits || 0;
+    const misses = perf.cacheMisses || 0;
     return {
       cache: {
-        hits: perf.cacheHits || 0,
-        misses: perf.cacheMisses || 0,
-        total,
-        hitRate,
+        hits,
+        misses,
+        total: hits + misses,
+        hitRate: this.getCacheHitRate(),
         fullRecomputes: perf.fullRecomputes || 0,
         incrementalUpdates: perf.incrementalUpdates || 0,
       },
       selectors: {
-        cached: this.getSelectorReuseRate(),
+        cached: this.getSelectorCacheSize(),
       },
       counters: Object.fromEntries(metricCounters),
     };

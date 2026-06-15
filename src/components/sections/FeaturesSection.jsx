@@ -1,4 +1,3 @@
-// React import not required with the new JSX transform
 import { Target, TrendingDown, Users, Globe, Award, Shield } from 'lucide-react';
 import './FeaturesSection.css';
 

@@ -5,6 +5,7 @@ import { calculateCarbonScore } from './carbonScoreService.js';
 import { GoalService } from './goalService.js';
 import { AchievementService } from './achievementService.js';
 import { toDateKey, pad } from '../domain/dateUtils.js';
+import { getCategoryForType } from '../config/constants.js';
 import { Perf } from './perf.js';
 import { InvariantEngine } from './invariantEngine.js';
 import { Telemetry } from './telemetry.js';
@@ -15,35 +16,136 @@ let cacheGeneration = 0;
 let stale = false;
 let lastAddedEntryId = null;
 
-const listeners = new Set();
-const notify = () => { for (const fn of listeners) fn(); };
+const subscribers = new Set();
+const notifySubscribers = () => { for (const handler of subscribers) handler(); };
 
-const isSameDay = (d1, d2) => d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+let selectorCache = {};
+let selectorGeneration = -1;
 
-const isSameMonth = (d1, d2) => d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth();
+const isSameDay = (date1, date2) =>
+  date1.getFullYear() === date2.getFullYear() &&
+  date1.getMonth() === date2.getMonth() &&
+  date1.getDate() === date2.getDate();
 
-const isValidAgg = (agg) => agg && agg._cachedAt && agg.startOfDay && agg.startOfWeek && agg.startOfMonth;
+const isSameMonth = (date1, date2) =>
+  date1.getFullYear() === date2.getFullYear() &&
+  date1.getMonth() === date2.getMonth();
 
-const maybeInvalidateStaleBounds = (agg) => {
-  if (!isValidAgg(agg)) return true;
+const isValidAggregation = (aggregation) =>
+  aggregation && aggregation._cachedAt && aggregation.startOfDay &&
+  aggregation.startOfWeek && aggregation.startOfMonth;
+
+const isAggregationStaleByTime = (aggregation) => {
+  if (!isValidAggregation(aggregation)) return true;
   const now = new Date();
-  if (!isSameDay(agg._cachedAt, now)) return true;
-  if (!isSameMonth(agg._cachedAt, now)) return true;
-  return false;
+  return !isSameDay(aggregation._cachedAt, now) || !isSameMonth(aggregation._cachedAt, now);
 };
 
-const verifyAggregationConsistency = (activities, agg) => {
-  if (!agg) return true;
-  let sum = 0;
-  for (let i = 0; i < activities.length; i++) sum += Number(activities[i].co2) || 0;
-  if (Math.abs(agg.totalSum - sum) > 0.001) {
-    cachedAggregation = null;
-    return false;
+const recomputeAggregation = () => {
+  Perf.fullRecompute();
+  Perf.start('computeFullAggregation');
+  const aggregation = computeFullAggregation(cachedActivities);
+  aggregation._cachedAt = new Date();
+  Perf.end('computeFullAggregation');
+  const invariantResult = InvariantEngine.verify('aggregationConsistency', cachedActivities, aggregation);
+  if (!invariantResult.pass) {
+    Telemetry.emit('consistency_failure');
+    const recomputed = computeFullAggregation(cachedActivities);
+    recomputed._cachedAt = new Date();
+    return recomputed;
   }
+  return aggregation;
+};
+
+const updateIndexEntry = (map, key, entry, operation) => {
+  if (operation === 'add') {
+    const existing = map.get(key);
+    if (existing) existing.push(entry);
+    else map.set(key, [entry]);
+  } else {
+    const existing = map.get(key);
+    if (!existing) return;
+    const index = existing.indexOf(entry);
+    if (index >= 0) existing.splice(index, 1);
+    if (existing.length === 0) map.delete(key);
+  }
+};
+
+const updateNumericIndex = (map, key, delta) => {
+  const current = map.get(key) || 0;
+  const newValue = current + delta;
+  if (newValue <= 0) map.delete(key);
+  else map.set(key, newValue);
+};
+
+const updateAggregationSums = (aggregation, entry, multiplier) => {
+  const date = new Date(entry.date);
+  const co2 = Number(entry.co2) || 0;
+  const delta = co2 * multiplier;
+
+  if (date >= aggregation.startOfDay) aggregation.todaySum += delta;
+  if (date >= aggregation.startOfWeek) aggregation.weeklySum += delta;
+  if (date >= aggregation.startOfMonth) aggregation.monthlySum += delta;
+  aggregation.totalSum += delta;
+
+  updateNumericIndex(aggregation.dayMap, toDateKey(date), delta);
+
+  const monthKey = `${date.getFullYear()}-${pad(date.getMonth() + 1)}`;
+  updateNumericIndex(aggregation.monthMap, monthKey, delta);
+
+  const previousTypeSum = aggregation.typeSum.get(entry.type) || 0;
+  const newTypeSum = previousTypeSum + delta;
+  if (newTypeSum <= 0) aggregation.typeSum.delete(entry.type);
+  else aggregation.typeSum.set(entry.type, newTypeSum);
+
+  const activityKey = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+  updateNumericIndex(aggregation.dateActivityCounts, activityKey, delta > 0 ? 1 : -1);
+};
+
+const updateTypeCounters = (aggregation, entry, increment) => {
+  const change = increment ? 1 : -1;
+  if (entry.type === 'Bus') aggregation.typeCounts.bus += change;
+  else if (entry.type === 'Train') aggregation.typeCounts.train += change;
+  else if (entry.type === 'Car' && Number(entry.value) <= 2) aggregation.typeCounts.carShort += change;
+  aggregation.totalActivities += change;
+};
+
+const incrementallyUpdate = (aggregation, entry, operation) => {
+  if (!cachedActivities) return false;
+  const now = new Date();
+  if (!isSameDay(aggregation._cachedAt, now)) return false;
+  if (!isSameMonth(aggregation._cachedAt, now)) return false;
+
+  const isAdd = operation === 'add';
+  const multiplier = isAdd ? 1 : -1;
+
+  Perf.incremental();
+  Perf.start('incremental' + (isAdd ? 'Add' : 'Remove'));
+
+  updateAggregationSums(aggregation, entry, multiplier);
+  updateTypeCounters(aggregation, entry, isAdd);
+
+  const date = new Date(entry.date);
+  const monthKey = `${date.getFullYear()}-${pad(date.getMonth() + 1)}`;
+  const category = getCategoryForType(entry.type);
+
+  if (isAdd) {
+    aggregation.byId.set(entry.id, entry);
+    updateIndexEntry(aggregation.byType, entry.type, entry, 'add');
+    updateIndexEntry(aggregation.byMonth, monthKey, entry, 'add');
+    updateIndexEntry(aggregation.byCategory, category, entry, 'add');
+  } else {
+    aggregation.byId.delete(entry.id);
+    updateIndexEntry(aggregation.byType, entry.type, entry, 'remove');
+    updateIndexEntry(aggregation.byMonth, monthKey, entry, 'remove');
+    updateIndexEntry(aggregation.byCategory, category, entry, 'remove');
+  }
+
+  Perf.end('incremental' + (isAdd ? 'Add' : 'Remove'));
   return true;
 };
 
-const load = () => {
+const loadActivities = () => {
   if (stale) {
     cachedActivities = null;
     cachedAggregation = null;
@@ -52,7 +154,10 @@ const load = () => {
   if (cachedActivities) {
     Perf.hit('getActivities');
     if (cachedAggregation) {
-      verifyAggregationConsistency(cachedActivities, cachedAggregation);
+      const computedSum = cachedActivities.reduce((sum, a) => sum + (Number(a.co2) || 0), 0);
+      if (Math.abs(cachedAggregation.totalSum - computedSum) > 0.001) {
+        cachedAggregation = null;
+      }
     }
     return cachedActivities;
   }
@@ -63,179 +168,37 @@ const load = () => {
   return cachedActivities;
 };
 
-const loadAgg = (activities) => {
-  if (cachedAggregation && !maybeInvalidateStaleBounds(cachedAggregation)) {
+const loadAggregation = () => {
+  if (cachedAggregation && !isAggregationStaleByTime(cachedAggregation)) {
     Perf.hit('getAggregation');
     return cachedAggregation;
   }
   Perf.miss('getAggregation');
-  Perf.fullRecompute();
-  Perf.start('computeFullAggregation');
-  cachedAggregation = computeFullAggregation(activities);
-  cachedAggregation._cachedAt = new Date();
-  Perf.end('computeFullAggregation');
-  const inv = InvariantEngine.verify('aggregationConsistency', activities, cachedAggregation);
-  if (!inv.pass) { Telemetry.emit('consistency_failure'); cachedAggregation = null; return computeFullAggregation(activities); }
+  cachedAggregation = recomputeAggregation();
   Telemetry.emit('aggregation_verified');
   return cachedAggregation;
 };
 
-const recallAgg = () => {
-  Perf.fullRecompute();
-  Perf.start('computeFullAggregation');
-  cachedAggregation = computeFullAggregation(cachedActivities);
-  cachedAggregation._cachedAt = new Date();
-  Perf.end('computeFullAggregation');
-  const inv = InvariantEngine.verify('aggregationConsistency', cachedActivities, cachedAggregation);
-  if (!inv.pass) { Telemetry.emit('consistency_failure'); cachedAggregation = computeFullAggregation(cachedActivities); cachedAggregation._cachedAt = new Date(); }
-  return cachedAggregation;
-};
-
-const incrementalAdd = (agg, entry) => {
-  if (!cachedActivities) return false;
-  const now = new Date();
-  if (!isSameDay(agg._cachedAt, now)) return false;
-  if (!isSameMonth(agg._cachedAt, now)) return false;
-
-  Perf.incremental();
-  Perf.start('incrementalAdd');
-  const a = entry;
-  const d = new Date(a.date);
-  const co2 = Number(a.co2) || 0;
-
-  if (d >= agg.startOfDay) agg.todaySum += co2;
-  if (d >= agg.startOfWeek) agg.weeklySum += co2;
-  if (d >= agg.startOfMonth) agg.monthlySum += co2;
-  agg.totalSum += co2;
-
-  const dk = toDateKey(d);
-  agg.dayMap.set(dk, (agg.dayMap.get(dk) || 0) + co2);
-
-  const mk = `${d.getFullYear()}-${pad(d.getMonth()+1)}`;
-  agg.monthMap.set(mk, (agg.monthMap.get(mk) || 0) + co2);
-
-  const prev = agg.typeSum.get(a.type) || 0;
-  agg.typeSum.set(a.type, prev + co2);
-
-  agg.byId.set(a.id, a);
-
-  const byTypeList = agg.byType.get(a.type);
-  if (byTypeList) byTypeList.push(a);
-  else agg.byType.set(a.type, [a]);
-
-  const byMonthList = agg.byMonth.get(mk);
-  if (byMonthList) byMonthList.push(a);
-  else agg.byMonth.set(mk, [a]);
-
-  const cat = a.type === 'Car' || a.type === 'Bus' || a.type === 'Train' || a.type === 'Flight' ? 'Travel' : a.type === 'Electricity' || a.type === 'Waste' ? 'Home' : 'Food';
-  const byCatList = agg.byCategory.get(cat);
-  if (byCatList) byCatList.push(a);
-  else agg.byCategory.set(cat, [a]);
-
-  const ak = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
-  agg.dateActivityCounts.set(ak, (agg.dateActivityCounts.get(ak) || 0) + 1);
-
-  if (a.type === 'Bus') agg.typeCounts.bus++;
-  else if (a.type === 'Train') agg.typeCounts.train++;
-  else if (a.type === 'Car' && Number(a.value) <= 2) agg.typeCounts.carShort++;
-  agg.totalActivities++;
-
-  Perf.end('incrementalAdd');
-  return true;
-};
-
-const incrementalRemove = (agg, entry) => {
-  if (!cachedActivities) return false;
-  const now = new Date();
-  if (!isSameDay(agg._cachedAt, now)) return false;
-  if (!isSameMonth(agg._cachedAt, now)) return false;
-
-  Perf.incremental();
-  Perf.start('incrementalRemove');
-  const a = entry;
-  const d = new Date(a.date);
-  const co2 = Number(a.co2) || 0;
-
-  if (d >= agg.startOfDay) agg.todaySum -= co2;
-  if (d >= agg.startOfWeek) agg.weeklySum -= co2;
-  if (d >= agg.startOfMonth) agg.monthlySum -= co2;
-  agg.totalSum -= co2;
-
-  const dk = toDateKey(d);
-  const curDay = agg.dayMap.get(dk) || 0;
-  if (curDay <= co2) agg.dayMap.delete(dk);
-  else agg.dayMap.set(dk, curDay - co2);
-
-  const mk = `${d.getFullYear()}-${pad(d.getMonth()+1)}`;
-  const curMonth = agg.monthMap.get(mk) || 0;
-  if (curMonth <= co2) agg.monthMap.delete(mk);
-  else agg.monthMap.set(mk, curMonth - co2);
-
-  const prev = agg.typeSum.get(a.type) || 0;
-  if (prev <= co2) agg.typeSum.delete(a.type);
-  else agg.typeSum.set(a.type, prev - co2);
-
-  agg.byId.delete(a.id);
-
-  const byTypeList = agg.byType.get(a.type);
-  if (byTypeList) {
-    const idx = byTypeList.indexOf(a);
-    if (idx >= 0) byTypeList.splice(idx, 1);
-    if (byTypeList.length === 0) agg.byType.delete(a.type);
-  }
-
-  const byMonthList = agg.byMonth.get(mk);
-  if (byMonthList) {
-    const idx = byMonthList.indexOf(a);
-    if (idx >= 0) byMonthList.splice(idx, 1);
-    if (byMonthList.length === 0) agg.byMonth.delete(mk);
-  }
-
-  const cat = a.type === 'Car' || a.type === 'Bus' || a.type === 'Train' || a.type === 'Flight' ? 'Travel' : a.type === 'Electricity' || a.type === 'Waste' ? 'Home' : 'Food';
-  const byCatList = agg.byCategory.get(cat);
-  if (byCatList) {
-    const idx = byCatList.indexOf(a);
-    if (idx >= 0) byCatList.splice(idx, 1);
-    if (byCatList.length === 0) agg.byCategory.delete(cat);
-  }
-
-  const ak = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
-  const curAc = agg.dateActivityCounts.get(ak) || 0;
-  if (curAc <= 1) agg.dateActivityCounts.delete(ak);
-  else agg.dateActivityCounts.set(ak, curAc - 1);
-
-  if (a.type === 'Bus') agg.typeCounts.bus--;
-  else if (a.type === 'Train') agg.typeCounts.train--;
-  else if (a.type === 'Car' && Number(a.value) <= 2) agg.typeCounts.carShort--;
-  agg.totalActivities--;
-
-  Perf.end('incrementalRemove');
-  return true;
-};
-
-let selectorCache = {};
-let selectorGen = -1;
-
-const memoSelector = (key, fn) => {
-  const gen = cacheGeneration;
-  if (gen !== selectorGen) {
+const memoizedSelector = (key, computeFn) => {
+  const currentGeneration = cacheGeneration;
+  if (currentGeneration !== selectorGeneration) {
     selectorCache = {};
-    selectorGen = gen;
+    selectorGeneration = currentGeneration;
   }
   if (!(key in selectorCache)) {
     Perf.start(key);
-    selectorCache[key] = fn();
+    selectorCache[key] = computeFn();
     Perf.end(key);
   }
   return selectorCache[key];
 };
 
 export const ActivityCache = {
-  getActivities: () => load(),
+  getActivities: () => loadActivities(),
 
   getAggregation: () => {
-    const acts = load();
-    return loadAgg(acts);
+    loadActivities();
+    return loadAggregation();
   },
 
   invalidate: () => {
@@ -249,7 +212,7 @@ export const ActivityCache = {
       entry = ActivityService.addActivity(data);
     } catch {
       ActivityCache.invalidate();
-      notify();
+      notifySubscribers();
       return null;
     }
     if (lastAddedEntryId === entry.id) return entry;
@@ -257,37 +220,38 @@ export const ActivityCache = {
     if (cachedActivities) {
       cachedActivities = [entry, ...cachedActivities];
       if (cachedAggregation) {
-        if (!incrementalAdd(cachedAggregation, entry)) {
-          recallAgg();
+        if (!incrementallyUpdate(cachedAggregation, entry, 'add')) {
+          cachedAggregation = recomputeAggregation();
         }
       }
     }
     cacheGeneration++;
-    notify();
+    notifySubscribers();
     return entry;
   },
 
   removeActivity: (id) => {
-    const removed = cachedAggregation ? (cachedAggregation.byId.get(id) || null) : (cachedActivities ? cachedActivities.find(a => a.id === id) : null);
+    const removed = cachedAggregation
+      ? (cachedAggregation.byId.get(id) || null)
+      : (cachedActivities ? cachedActivities.find(a => a.id === id) : null);
     let next;
     try {
       next = ActivityService.removeActivity(id);
     } catch {
       ActivityCache.invalidate();
-      notify();
+      notifySubscribers();
       return [];
     }
     if (cachedActivities) {
       cachedActivities = next;
       if (cachedAggregation && removed) {
-        cachedAggregation.byId.delete(id);
-        if (!incrementalRemove(cachedAggregation, removed)) {
-          recallAgg();
+        if (!incrementallyUpdate(cachedAggregation, removed, 'remove')) {
+          cachedAggregation = recomputeAggregation();
         }
       }
     }
     cacheGeneration++;
-    notify();
+    notifySubscribers();
     return next;
   },
 
@@ -296,7 +260,7 @@ export const ActivityCache = {
       ActivityService.clearActivities();
     } catch {
       ActivityCache.invalidate();
-      notify();
+      notifySubscribers();
       return;
     }
     cachedActivities = [];
@@ -304,70 +268,70 @@ export const ActivityCache = {
     lastAddedEntryId = null;
     cacheGeneration++;
     stale = false;
-    notify();
+    notifySubscribers();
   },
 
-  subscribe: (fn) => {
-    listeners.add(fn);
-    return () => listeners.delete(fn);
+  subscribe: (handler) => {
+    subscribers.add(handler);
+    return () => subscribers.delete(handler);
   },
 
   getIndex: (name) => {
-    const agg = loadAgg(load());
-    return agg[name];
+    const aggregation = loadAggregation();
+    return aggregation[name];
   },
 
   getRecommendations: () => {
-    return memoSelector('recommendations', () => {
-      const acts = load();
-      const agg = loadAgg(acts);
-      const breakdown = breakdownByCategory(acts, agg);
-      return generateRecommendations(acts, breakdown, agg.monthlySum);
+    return memoizedSelector('recommendations', () => {
+      const activities = loadActivities();
+      const aggregation = loadAggregation();
+      const breakdown = breakdownByCategory(activities, aggregation);
+      return generateRecommendations(activities, breakdown, aggregation.monthlySum);
     });
   },
 
   getScoreAndMeta: () => {
-    return memoSelector('scoreAndMeta', () => {
-      const acts = load();
-      const agg = loadAgg(acts);
-      const breakdown = breakdownByCategory(acts, agg);
-      const scoreObj = calculateCarbonScore(acts, agg, breakdown);
-      InvariantEngine.verify('scoreRange', scoreObj);
-      return scoreObj;
+    return memoizedSelector('scoreAndMeta', () => {
+      const activities = loadActivities();
+      const aggregation = loadAggregation();
+      const breakdown = breakdownByCategory(activities, aggregation);
+      const scoreObject = calculateCarbonScore(activities, aggregation, breakdown);
+      InvariantEngine.verify('scoreRange', scoreObject);
+      return scoreObject;
     });
   },
 
   getGoalProgress: (goal) => {
-    const key = 'goalProgress_' + (goal && goal.targetKg ? goal.targetKg : 'none');
-    return memoSelector(key, () => {
-      const agg = loadAgg(load());
-      return GoalService.computeProgress(null, goal, agg);
+    const selectorKey = 'goalProgress_' + (goal && goal.targetKg ? goal.targetKg : 'none');
+    return memoizedSelector(selectorKey, () => {
+      const aggregation = loadAggregation();
+      return GoalService.computeProgress(null, goal, aggregation);
     });
   },
 
   getAchievements: (goal) => {
-    const key = 'achievements_' + (goal && goal.targetKg ? goal.targetKg : 'none');
-    return memoSelector(key, () => {
-      const acts = load();
-      const agg = loadAgg(acts);
-      return AchievementService.evaluateAchievements(acts, goal, agg);
+    const selectorKey = 'achievements_' + (goal && goal.targetKg ? goal.targetKg : 'none');
+    return memoizedSelector(selectorKey, () => {
+      const activities = loadActivities();
+      const aggregation = loadAggregation();
+      return AchievementService.evaluateAchievements(activities, goal, aggregation);
     });
   },
 
   getSummaryStats: () => {
-    return memoSelector('summaryStats', () => {
-      const acts = load();
-      const agg = loadAgg(acts);
-      return summaryStats(acts, agg);
+    return memoizedSelector('summaryStats', () => {
+      const activities = loadActivities();
+      const aggregation = loadAggregation();
+      return summaryStats(activities, aggregation);
     });
   },
 
   get generation() { return cacheGeneration; },
 
   perfReport: () => {
-    const r = Perf.report();
-    r.selectorCacheSize = Object.keys(selectorCache).length;
-    return r;
+    const report = Perf.report();
+    report.selectorCacheSize = Object.keys(selectorCache).length;
+    return report;
   },
 
   perfReset: () => Perf.reset()
