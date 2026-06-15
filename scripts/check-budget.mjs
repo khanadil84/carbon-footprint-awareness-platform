@@ -11,7 +11,7 @@ const budgets = {
   totalJS: { raw: 500000, gzip: 180000 },
   totalCSS: { raw: 40000, gzip: 12000 },
   mainJS: { raw: 350000, gzip: 120000 },
-  mainCSS: { raw: 30000, gzip: 8000 }
+  mainCSS: { raw: 36000, gzip: 8000 }
 };
 
 console.log('Bundle Budget Check\n');

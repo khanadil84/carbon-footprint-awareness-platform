@@ -7,6 +7,7 @@ import { LoginPage } from './pages/auth/LoginPage';
 import { SignUpPage } from './pages/auth/SignUpPage';
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { EngineeringPage } from './pages/EngineeringPage';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -61,6 +62,8 @@ function App() {
               <DashboardPage />
             </ProtectedRoute>
           } />
+
+          <Route path="/engineering" element={<EngineeringPage />} />
           
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

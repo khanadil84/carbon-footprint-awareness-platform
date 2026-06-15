@@ -47,6 +47,7 @@ export const Navbar = memo(() => {
               <li><a href="#features" className="navbar-link">Features</a></li>
               <li><a href="#impact" className="navbar-link">Impact</a></li>
               <li><a href="#about" className="navbar-link">About Us</a></li>
+              <li><a href="/engineering" className="navbar-link">Engineering</a></li>
             </ul>
             <div className="navbar-actions">
               <Button variant="ghost" onClick={() => navigate('/login')}>Log in</Button>
@@ -73,6 +74,7 @@ export const Navbar = memo(() => {
             <li><a href="#features" className="mobile-menu-link" onClick={closeMenu}>Features</a></li>
             <li><a href="#impact" className="mobile-menu-link" onClick={closeMenu}>Impact</a></li>
             <li><a href="#about" className="mobile-menu-link" onClick={closeMenu}>About Us</a></li>
+            <li><a href="/engineering" className="mobile-menu-link" onClick={closeMenu}>Engineering</a></li>
           </ul>
           <div className="mobile-menu-actions">
             <Button variant="ghost" className="mobile-action-btn" onClick={() => { closeMenu(); navigate('/login'); }}>Log in</Button>
