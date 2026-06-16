@@ -120,7 +120,7 @@ export const BUILD_INFO = [
   { label: 'Version', value: 'v1.0.0' },
   { label: 'Environment', value: 'Production' },
   { label: 'CI', value: 'GitHub Actions' },
-  { label: 'Deployment', value: 'Vercel' },
+  { label: 'Deployment', value: 'Google Cloud Run' },
   { label: 'Status', value: 'Healthy' },
 ];
 
