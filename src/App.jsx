@@ -8,6 +8,15 @@ import { SignUpPage } from './pages/auth/SignUpPage';
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { EngineeringPage } from './pages/EngineeringPage';
+import { TrackerPage } from './pages/TrackerPage';
+import { PricingPage } from './pages/PricingPage';
+import { ResourcesPage } from './pages/ResourcesPage';
+import { BlogPage } from './pages/BlogPage';
+import { GuidesPage } from './pages/GuidesPage';
+import { HelpCenterPage } from './pages/HelpCenterPage';
+import { LegalPage } from './pages/LegalPage';
+import { PrivacyPage } from './pages/PrivacyPage';
+import { TermsPage } from './pages/TermsPage';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -64,6 +73,16 @@ function App() {
           } />
 
           <Route path="/engineering" element={<EngineeringPage />} />
+
+          <Route path="/tracker" element={<TrackerPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/resources" element={<ResourcesPage />} />
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/guides" element={<GuidesPage />} />
+          <Route path="/help-center" element={<HelpCenterPage />} />
+          <Route path="/legal" element={<LegalPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
           
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

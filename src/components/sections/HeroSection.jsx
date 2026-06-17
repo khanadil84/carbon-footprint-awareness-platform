@@ -1,8 +1,18 @@
+import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Leaf } from 'lucide-react';
 import { Button } from '../ui/Button';
 import './HeroSection.css';
 
 export const HeroSection = () => {
+  const navigate = useNavigate();
+
+  const handleHowItWorks = () => {
+    const el = document.getElementById('how-it-works');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <section className="hero" aria-labelledby="hero-heading">
       <div className="container hero-container">
@@ -18,10 +28,10 @@ export const HeroSection = () => {
             Take control of your environmental impact. EcoTrack provides actionable insights and tools to help you live a more sustainable, earth-friendly life.
           </p>
           <div className="hero-actions">
-            <Button variant="primary" size="lg" className="hero-btn">
+            <Button variant="primary" size="lg" className="hero-btn" onClick={() => navigate('/tracker')}>
               Start Tracking Free <ArrowRight aria-hidden="true" className="btn-icon" />
             </Button>
-            <Button variant="outline" size="lg" className="hero-btn">
+            <Button variant="outline" size="lg" className="hero-btn" onClick={handleHowItWorks}>
               How it works
             </Button>
           </div>

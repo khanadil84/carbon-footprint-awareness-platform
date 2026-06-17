@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Leaf, Globe, Mail, MessageSquare } from 'lucide-react';
 import './Footer.css';
 
@@ -34,24 +35,26 @@ export const Footer = () => {
             <ul className="footer-links" role="list">
               <li><a href="#features">Features</a></li>
               <li><a href="#impact">Impact</a></li>
-              <li><a href="#pricing">Pricing</a></li>
+              <li><Link to="/pricing">Pricing</Link></li>
             </ul>
           </div>
 
           <div className="footer-links-group">
             <h3 className="footer-heading">Resources</h3>
             <ul className="footer-links" role="list">
-              <li><a href="#blog">Blog</a></li>
-              <li><a href="#guides">Guides</a></li>
-              <li><a href="#help">Help Center</a></li>
+              <li><Link to="/resources">Resources</Link></li>
+              <li><Link to="/blog">Blog</Link></li>
+              <li><Link to="/guides">Guides</Link></li>
+              <li><Link to="/help-center">Help Center</Link></li>
             </ul>
           </div>
 
           <div className="footer-links-group">
             <h3 className="footer-heading">Legal</h3>
             <ul className="footer-links" role="list">
-              <li><a href="#privacy">Privacy</a></li>
-              <li><a href="#terms">Terms</a></li>
+              <li><Link to="/legal">Legal</Link></li>
+              <li><Link to="/privacy">Privacy</Link></li>
+              <li><Link to="/terms">Terms</Link></li>
             </ul>
           </div>
 
