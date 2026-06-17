@@ -1,4 +1,4 @@
-// React import not required with the new JSX transform
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './context/useAuth';
@@ -8,15 +8,22 @@ import { SignUpPage } from './pages/auth/SignUpPage';
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { EngineeringPage } from './pages/EngineeringPage';
-import { TrackerPage } from './pages/TrackerPage';
-import { PricingPage } from './pages/PricingPage';
-import { ResourcesPage } from './pages/ResourcesPage';
-import { BlogPage } from './pages/BlogPage';
-import { GuidesPage } from './pages/GuidesPage';
-import { HelpCenterPage } from './pages/HelpCenterPage';
-import { LegalPage } from './pages/LegalPage';
-import { PrivacyPage } from './pages/PrivacyPage';
-import { TermsPage } from './pages/TermsPage';
+
+const TrackerPage = lazy(() => import('./pages/TrackerPage'));
+const PricingPage = lazy(() => import('./pages/PricingPage'));
+const ResourcesPage = lazy(() => import('./pages/ResourcesPage'));
+const BlogPage = lazy(() => import('./pages/BlogPage'));
+const GuidesPage = lazy(() => import('./pages/GuidesPage'));
+const HelpCenterPage = lazy(() => import('./pages/HelpCenterPage'));
+const LegalPage = lazy(() => import('./pages/LegalPage'));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
+const TermsPage = lazy(() => import('./pages/TermsPage'));
+
+const PageLoader = () => (
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', color: 'var(--text-secondary)' }}>
+    <span role="status">Loading...</span>
+  </div>
+);
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -74,15 +81,15 @@ function App() {
 
           <Route path="/engineering" element={<EngineeringPage />} />
 
-          <Route path="/tracker" element={<TrackerPage />} />
-          <Route path="/pricing" element={<PricingPage />} />
-          <Route path="/resources" element={<ResourcesPage />} />
-          <Route path="/blog" element={<BlogPage />} />
-          <Route path="/guides" element={<GuidesPage />} />
-          <Route path="/help-center" element={<HelpCenterPage />} />
-          <Route path="/legal" element={<LegalPage />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/tracker" element={<Suspense fallback={<PageLoader />}><TrackerPage /></Suspense>} />
+          <Route path="/pricing" element={<Suspense fallback={<PageLoader />}><PricingPage /></Suspense>} />
+          <Route path="/resources" element={<Suspense fallback={<PageLoader />}><ResourcesPage /></Suspense>} />
+          <Route path="/blog" element={<Suspense fallback={<PageLoader />}><BlogPage /></Suspense>} />
+          <Route path="/guides" element={<Suspense fallback={<PageLoader />}><GuidesPage /></Suspense>} />
+          <Route path="/help-center" element={<Suspense fallback={<PageLoader />}><HelpCenterPage /></Suspense>} />
+          <Route path="/legal" element={<Suspense fallback={<PageLoader />}><LegalPage /></Suspense>} />
+          <Route path="/privacy" element={<Suspense fallback={<PageLoader />}><PrivacyPage /></Suspense>} />
+          <Route path="/terms" element={<Suspense fallback={<PageLoader />}><TermsPage /></Suspense>} />
           
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
