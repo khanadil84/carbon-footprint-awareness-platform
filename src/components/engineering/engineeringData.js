@@ -131,5 +131,5 @@ export const RECENT_EVENTS = [
   { time: '5m ago', event: 'Bundle Budget passed', icon: CheckCircle, variant: 'success' },
   { time: '6m ago', event: 'Security Verification passed', icon: CheckCircle, variant: 'success' },
   { time: '7m ago', event: 'Benchmarks passed', icon: CheckCircle, variant: 'success' },
-  { time: '10m ago', event: 'Vercel Deployment completed', icon: Cloud, variant: 'default' },
+  { time: '10m ago', event: 'Google Cloud Run deployment completed', icon: Cloud, variant: 'success' },
 ];
