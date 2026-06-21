@@ -109,7 +109,7 @@ export const DashboardPage = () => {
       <WelcomeSection user={user} />
 
       <main className="container dfp-dashboard" role="main">
-        <div className="dfp-grid dfp-grid--stats" aria-hidden>
+        <div className="dfp-grid dfp-grid--stats">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <StatCard title="Carbon Score" value={score} description={score >= 75 ? 'Good — keep it up' : 'Keep improving'} ariaLabel="Carbon score" />
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -125,7 +125,7 @@ export const DashboardPage = () => {
 
         <div style={{ height: 'var(--spacing-6)' }} />
 
-        <Suspense fallback={<div aria-hidden>Loading analytics…</div>}>
+        <Suspense fallback={<span role="status">Loading analytics…</span>}>
           <AnalyticsSection activitiesProp={activities} preferredRange={settings.analyticsRange} />
         </Suspense>
 
@@ -144,21 +144,21 @@ export const DashboardPage = () => {
 
           <aside aria-labelledby="right-column-heading">
             <h2 id="right-column-heading" className="sr-only">Secondary</h2>
-            <Suspense fallback={<div aria-hidden>Loading tools…</div>}>
+            <Suspense fallback={<span role="status">Loading tools…</span>}>
               <ExportControls />
               <Badges />
             </Suspense>
             <div style={{ height: 'var(--spacing-2)' }} />
-            <Suspense fallback={<div aria-hidden>Loading recommendations…</div>}>
+            <Suspense fallback={<span role="status">Loading recommendations…</span>}>
               <AIRecommendations />
               <PrintableReport />
             </Suspense>
             <div style={{ height: 'var(--spacing-4)' }} />
-            <Suspense fallback={<div aria-hidden>Loading settings…</div>}>
+            <Suspense fallback={<span role="status">Loading settings…</span>}>
               <SettingsPanel />
             </Suspense>
             <div style={{ height: 'var(--spacing-4)' }} />
-            <Suspense fallback={<div aria-hidden>Loading goals…</div>}>
+            <Suspense fallback={<span role="status">Loading goals…</span>}>
               <MonthlyGoal />
             </Suspense>
           </aside>

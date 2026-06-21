@@ -60,7 +60,7 @@ export const LoginPage = () => {
       subtitle="Enter your details to access your dashboard."
     >
       <form onSubmit={handleSubmit} className="auth-form" noValidate>
-        <ErrorBanner message={errors.submit} />
+        <div role="alert"><ErrorBanner message={errors.submit} /></div>
 
         <Input
           id="email"
