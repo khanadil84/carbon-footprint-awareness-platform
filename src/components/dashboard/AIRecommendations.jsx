@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useState } from 'react';
 import { ActivityCache } from '../../utils/activityCache';
+import { useStorageSync } from '../../utils/useStorageSync';
 import { STORAGE_KEYS } from '../../config/securityConfig.js';
 
 const RecommendationCard = ({ rec }) => (
@@ -26,16 +27,7 @@ export const AIRecommendations = () => {
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  useEffect(() => {
-    const onStorage = (e) => {
-      if (e.key === STORAGE_KEYS.ACTIVITIES) {
-        ActivityCache.invalidate();
-        refresh();
-      }
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, [refresh]);
+  useStorageSync([STORAGE_KEYS.ACTIVITIES], refresh);
 
   return (
     <section className="dfp-ai" aria-labelledby="dfp-ai-heading">

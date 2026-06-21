@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useState } from 'react';
 import { ExportService } from '../../utils/exportService';
 import { ActivityCache } from '../../utils/activityCache';
+import { useStorageSync } from '../../utils/useStorageSync';
 import { STORAGE_KEYS } from '../../config/securityConfig.js';
 import './print.css';
 
@@ -16,16 +17,7 @@ export const PrintableReport = () => {
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  useEffect(() => {
-    const onStorage = (e) => {
-      if (STORAGE_KEYS_LIST.includes(e.key)) {
-        ActivityCache.invalidate();
-        refresh();
-      }
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, [refresh]);
+  useStorageSync(STORAGE_KEYS_LIST, refresh);
 
   if (!report) return null;
 

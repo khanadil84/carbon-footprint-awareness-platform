@@ -1,18 +1,23 @@
+/** In-memory event counter for telemetry and monitoring. */
 const counters = new Map();
 
 export const Telemetry = {
+  /** Increment a named counter by 1. */
   emit: (name) => {
     counters.set(name, (counters.get(name) || 0) + 1);
   },
 
+  /** Read the current count for a named event. */
   count: (name) => counters.get(name) || 0,
 
+  /** Snapshot of all counters as a plain object. */
   counts: () => {
     const snapshot = {};
     for (const [key, value] of counters) snapshot[key] = value;
     return snapshot;
   },
 
+  /** Aggregated summary grouped by category. */
   summary: () => {
     const events = Telemetry.counts();
     return {
@@ -29,7 +34,9 @@ export const Telemetry = {
     };
   },
 
+  /** Clear all counters. */
   reset: () => { counters.clear(); },
 
+  /** Reset a single named counter. */
   resetEvent: (name) => { counters.delete(name); }
 };

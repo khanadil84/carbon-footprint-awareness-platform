@@ -40,6 +40,10 @@ export const RECOMMENDED_HEADERS = [
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' }
 ];
 
+/**
+ * Validate data against a schema definition.
+ * Returns { valid, error } with error messages for each violation.
+ */
 export const checkSchemaIntegrity = (data, schema) => {
   if (!data || typeof data !== 'object') return { valid: false, error: 'Data must be an object' };
   if (!schema || typeof schema !== 'object') return { valid: false, error: 'Schema must be an object' };
@@ -70,6 +74,7 @@ export const checkSchemaIntegrity = (data, schema) => {
   return { valid: errors.length === 0, error: errors.join('; ') || null };
 };
 
+/** Check if a raw storage value shows signs of corruption. */
 export const detectStorageCorruption = (value) => {
   if (value === null || value === undefined) return { corrupted: false };
   if (typeof value === 'string') {

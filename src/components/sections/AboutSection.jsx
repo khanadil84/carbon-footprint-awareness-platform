@@ -1,5 +1,3 @@
-import './HeroSection.css';
-
 export const AboutSection = () => {
   return (
     <section id="about" className="dfp-section" aria-labelledby="about-heading">

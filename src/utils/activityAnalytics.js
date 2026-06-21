@@ -4,21 +4,10 @@ import { DEFAULT_ANALYTICS_DAYS } from '../config/securityConfig.js';
 import { getCategoryForType } from '../config/constants.js';
 import { InvariantEngine } from './invariantEngine.js';
 import { Telemetry } from './telemetry.js';
+import { updateTypeCounts } from './metrics.js';
 
 const DAY_MS = 86400000;
 const WEEK_MS = 7 * DAY_MS;
-
-const computeCarbonScore = (monthlyEmissions) => {
-  if (monthlyEmissions <= 50) return 100;
-  if (monthlyEmissions >= 1000) return 0;
-  return Math.round(100 - ((monthlyEmissions - 50) / (1000 - 50)) * 100);
-};
-
-const updateTypeCounts = (counts, activity) => {
-  if (activity.type === 'Bus') counts.bus++;
-  else if (activity.type === 'Train') counts.train++;
-  else if (activity.type === 'Car' && Number(activity.value) <= 2) counts.carShort++;
-};
 
 const buildAggregationIndex = (map, key, value) => {
   const existing = map.get(key);
@@ -26,6 +15,10 @@ const buildAggregationIndex = (map, key, value) => {
   else map.set(key, [value]);
 };
 
+/**
+ * Compute a full aggregation object from activity records.
+ * Returns sums, maps, and indexes for downstream querying.
+ */
 export const computeFullAggregation = (activities) => {
   const now = new Date();
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -68,7 +61,7 @@ export const computeFullAggregation = (activities) => {
     buildAggregationIndex(byType, record.type, record);
     buildAggregationIndex(byMonth, monthKey, record);
     buildAggregationIndex(byCategory, getCategoryForType(record.type), record);
-    updateTypeCounts(typeCounts, record);
+    updateTypeCounts(typeCounts, record, 1);
   }
 
   const result = {
@@ -87,7 +80,14 @@ export const computeFullAggregation = (activities) => {
   return result;
 };
 
+const computeCarbonScore = (monthlyEmissions) => {
+  if (monthlyEmissions <= 50) return 100;
+  if (monthlyEmissions >= 1000) return 0;
+  return Math.round(100 - ((monthlyEmissions - 50) / (1000 - 50)) * 100);
+};
+
 export const aggregate = (activities) => {
+  if (!Array.isArray(activities)) throw new TypeError('activities must be an array');
   const { todaySum, weeklySum, monthlySum, totalSum } = computeFullAggregation(activities);
   const totals = {
     today: round3(todaySum),
@@ -98,6 +98,7 @@ export const aggregate = (activities) => {
   return { totals, score: computeCarbonScore(totals.monthly) };
 };
 
+/** Build a sorted breakdown of CO2 by activity type with percentages. */
 export const breakdownByCategory = (activities, fullAggregation = null) => {
   const aggregation = fullAggregation || computeFullAggregation(activities);
   const total = aggregation.totalSum;
@@ -132,6 +133,7 @@ const buildMonthMap = (activities) => {
   return map;
 };
 
+/** Aggregate activities into daily CO2 totals over N days. */
 export const aggregateByDay = (activities = [], days = 30, existingDayMap = null) => {
   const now = new Date();
   const dateValues = new Map();
@@ -154,6 +156,7 @@ export const aggregateByDay = (activities = [], days = 30, existingDayMap = null
   return result;
 };
 
+/** Aggregate activities into weekly CO2 totals over N weeks. */
 export const aggregateByWeek = (activities = [], weeks = 12) => {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -178,6 +181,7 @@ export const aggregateByWeek = (activities = [], weeks = 12) => {
   }));
 };
 
+/** Aggregate activities into monthly CO2 totals over N months. */
 export const aggregateByMonth = (activities = [], months = 12, existingMonthMap = null) => {
   const now = new Date();
   const monthValues = new Map();
@@ -211,6 +215,7 @@ const findBestDay = (activities, existingDayMap = null) => {
   return best ? { date: best.date, value: round3(best.value) } : null;
 };
 
+/** Compute summary statistics (highest category, daily avg, best day) for a set of activities. */
 export const summaryStats = (activities, fullAggregation = null) => {
   if (!activities || activities.length === 0) {
     return { highestEmissionCategory: null, totalActivities: 0, avgDaily: 0, bestDay: null };

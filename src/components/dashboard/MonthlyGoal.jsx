@@ -4,8 +4,7 @@ import { STORAGE_KEYS } from '../../config/securityConfig.js';
 import { sanitizeNumber } from '../../domain/validation.js';
 import { ActivityCache } from '../../utils/activityCache';
 import { Button } from '../ui/Button';
-
-const STORAGE_KEYS_LIST = [STORAGE_KEYS.ACTIVITIES, STORAGE_KEYS.GOAL];
+import { useStorageSync } from '../../utils/useStorageSync';
 
 export const MonthlyGoal = () => {
   const [goal, setGoal] = useState(() => GoalService.loadGoal());
@@ -20,17 +19,13 @@ export const MonthlyGoal = () => {
 
   useEffect(() => { refresh(goal); }, [goal, refresh]);
 
-  useEffect(() => {
-    const onStorage = (e) => {
-      if (STORAGE_KEYS_LIST.includes(e.key)) {
-        const newGoal = GoalService.loadGoal();
-        setGoal(newGoal);
-        refresh(newGoal);
-      }
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+  const handleStorageChange = useCallback(() => {
+    const newGoal = GoalService.loadGoal();
+    setGoal(newGoal);
+    refresh(newGoal);
   }, [refresh]);
+
+  useStorageSync([STORAGE_KEYS.ACTIVITIES, STORAGE_KEYS.GOAL], handleStorageChange);
 
   const handleSave = () => {
     const val = sanitizeNumber(input, null);

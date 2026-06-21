@@ -4,6 +4,7 @@ import { Mail, CheckCircle } from 'lucide-react';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { authService } from '../../services/mockAuthService';
 import { validateEmail } from '../../domain/validation';
 
@@ -59,11 +60,7 @@ export const ForgotPasswordPage = () => {
       subtitle="Enter your email and we'll send you a link to reset your password."
     >
       <form onSubmit={handleSubmit} className="auth-form" noValidate>
-        {error && (
-          <div className="input-error-message" role="alert" style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#fee2e2', borderRadius: '0.25rem' }}>
-            {error}
-          </div>
-        )}
+        <ErrorBanner message={error} />
 
         <Input
           id="email"

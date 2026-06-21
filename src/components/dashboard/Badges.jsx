@@ -2,6 +2,7 @@ import { memo, useCallback, useEffect, useState } from 'react';
 import { ActivityCache } from '../../utils/activityCache';
 import { GoalService } from '../../utils/goalService';
 import { STORAGE_KEYS } from '../../config/securityConfig.js';
+import { useStorageSync } from '../../utils/useStorageSync';
 
 const STORAGE_KEYS_LIST = [STORAGE_KEYS.ACTIVITIES, STORAGE_KEYS.GOAL, STORAGE_KEYS.ACHIEVEMENTS];
 
@@ -34,16 +35,7 @@ export const Badges = () => {
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  useEffect(() => {
-    const onStorage = (e) => {
-      if (STORAGE_KEYS_LIST.includes(e.key)) {
-        ActivityCache.invalidate();
-        refresh();
-      }
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, [refresh]);
+  useStorageSync(STORAGE_KEYS_LIST, refresh);
 
   const earned = data.achievements.filter(a => a.unlocked);
   const locked = data.achievements.filter(a => !a.unlocked);

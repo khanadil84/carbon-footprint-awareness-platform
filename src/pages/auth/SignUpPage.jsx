@@ -4,6 +4,7 @@ import { Mail, Lock, User } from 'lucide-react';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { useAuth } from '../../context/useAuth';
 import { auth, checkPasswordStrength } from '../../domain/validation';
 
@@ -44,15 +45,6 @@ const PasswordStrengthIndicator = ({ password }) => {
           </li>
         ))}
       </ul>
-    </div>
-  );
-};
-
-const ErrorBanner = ({ message }) => {
-  if (!message) return null;
-  return (
-    <div className="input-error-message" role="alert" style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#fee2e2', borderRadius: '0.25rem' }}>
-      {message}
     </div>
   );
 };

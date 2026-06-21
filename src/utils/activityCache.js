@@ -6,6 +6,7 @@ import { GoalService } from './goalService.js';
 import { AchievementService } from './achievementService.js';
 import { toDateKey, pad } from '../domain/dateUtils.js';
 import { getCategoryForType } from '../config/constants.js';
+import { updateTypeCounts } from './metrics.js';
 import { Perf } from './perf.js';
 import { InvariantEngine } from './invariantEngine.js';
 import { Telemetry } from './telemetry.js';
@@ -104,9 +105,7 @@ const updateAggregationSums = (aggregation, entry, multiplier) => {
 
 const updateTypeCounters = (aggregation, entry, increment) => {
   const change = increment ? 1 : -1;
-  if (entry.type === 'Bus') aggregation.typeCounts.bus += change;
-  else if (entry.type === 'Train') aggregation.typeCounts.train += change;
-  else if (entry.type === 'Car' && Number(entry.value) <= 2) aggregation.typeCounts.carShort += change;
+  updateTypeCounts(aggregation.typeCounts, entry, change);
   aggregation.totalActivities += change;
 };
 
@@ -193,6 +192,9 @@ const memoizedSelector = (key, computeFn) => {
   return selectorCache[key];
 };
 
+/** Central activity cache providing in-memory caching over ActivityService,
+ *  memoized selectors, incremental aggregation updates, and subscriber
+ *  notifications. */
 export const ActivityCache = {
   getActivities: () => loadActivities(),
 

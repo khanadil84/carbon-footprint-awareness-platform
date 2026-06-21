@@ -4,6 +4,7 @@ import { Mail, Lock } from 'lucide-react';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { useAuth } from '../../context/useAuth';
 import { validateEmail, validatePassword, sanitizeString } from '../../domain/validation';
 
@@ -59,11 +60,7 @@ export const LoginPage = () => {
       subtitle="Enter your details to access your dashboard."
     >
       <form onSubmit={handleSubmit} className="auth-form" noValidate>
-        {errors.submit && (
-          <div className="input-error-message" role="alert" style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#fee2e2', borderRadius: '0.25rem' }}>
-            {errors.submit}
-          </div>
-        )}
+        <ErrorBanner message={errors.submit} />
 
         <Input
           id="email"

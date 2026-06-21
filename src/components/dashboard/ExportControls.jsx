@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useState } from 'react';
 import { ActivityCache } from '../../utils/activityCache';
 import { ExportService } from '../../utils/exportService';
+import { useStorageSync } from '../../utils/useStorageSync';
 import { STORAGE_KEYS } from '../../config/securityConfig.js';
 
 export const ExportControls = memo(() => {
@@ -10,16 +11,7 @@ export const ExportControls = memo(() => {
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  useEffect(() => {
-    const onStorage = (e) => {
-      if (e.key === STORAGE_KEYS.ACTIVITIES) {
-        ActivityCache.invalidate();
-        refresh();
-      }
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, [refresh]);
+  useStorageSync([STORAGE_KEYS.ACTIVITIES], refresh);
 
   const handleExportActivities = useCallback(() => {
     ExportService.exportActivitiesCSV(ActivityCache.getActivities());
