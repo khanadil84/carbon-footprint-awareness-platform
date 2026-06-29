@@ -40,7 +40,7 @@ jobs:
           cache: 'npm'
 
       - name: Cache Vite
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             node_modules/.vite
@@ -190,7 +190,7 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - name: Cache benchmark baseline
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: benchmark-baseline.json
           key: bench-${{ github.sha }}
