@@ -29,7 +29,7 @@
     "ci": "npm run lint && npm run build && node scripts/run-all-tests.mjs && node scripts/check-coverage.mjs 60 && node scripts/check-security.mjs && node scripts/check-performance.mjs && npm audit --audit-level=high"
   },
   "dependencies": {
-    "lucide-react": "^1.17.0",
+    "lucide-react": "^1.29.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.17.0"
